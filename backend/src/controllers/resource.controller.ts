@@ -2,6 +2,7 @@ import type { Request, Response } from 'express-serve-static-core';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -75,24 +76,27 @@ export async function getResources(req: Request, res: Response) {
     ]);
 
     // 格式化响应数据
-    const formattedResources = resources.map((resource) => ({
-      id: resource.id,
-      title: resource.title,
-      description: resource.description,
-      fileUrl: resource.fileUrl,
-      fileName: resource.fileName,
-      fileSize: resource.fileSize,
-      fileType: resource.fileType,
-      downloadCount: resource.downloadCount,
-      isPublic: resource.isPublic,
-      createdAt: resource.createdAt,
-      updatedAt: resource.updatedAt,
-      user: {
-        id: resource.user.id,
-        username: resource.user.username,
-        avatarUrl: resource.user.avatarUrl,
-      },
-    }));
+    const formattedResources = resources.map((resource) => {
+      const r = resource as any;
+      return {
+        id: resource.id,
+        title: resource.title,
+        description: resource.description,
+        fileUrl: resource.fileUrl,
+        fileName: resource.fileName,
+        fileSize: resource.fileSize,
+        fileType: resource.fileType,
+        downloadCount: resource.downloadCount,
+        isPublic: resource.isPublic,
+        createdAt: resource.createdAt,
+        updatedAt: resource.updatedAt,
+        user: {
+          id: r.user.id,
+          username: r.user.username,
+          avatarUrl: r.user.avatarUrl,
+        },
+      };
+    });
 
     sendSuccess(res, {
       resources: formattedResources,
@@ -216,6 +220,7 @@ export async function createResource(req: Request, res: Response) {
       },
     });
 
+    const r = resource as any;
     sendSuccess(res, {
       id: resource.id,
       title: resource.title,
@@ -228,9 +233,9 @@ export async function createResource(req: Request, res: Response) {
       isPublic: resource.isPublic,
       createdAt: resource.createdAt,
       user: {
-        id: resource.user.id,
-        username: resource.user.username,
-        avatarUrl: resource.user.avatarUrl,
+        id: r.user.id,
+        username: r.user.username,
+        avatarUrl: r.user.avatarUrl,
       },
     }, '资料上传成功', 201);
   } catch (error: any) {
@@ -245,7 +250,8 @@ export async function createResource(req: Request, res: Response) {
  */
 export async function getResourceById(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId; // 可选，用于判断权限
 
     // 查找资料
@@ -275,6 +281,7 @@ export async function getResourceById(req: Request, res: Response) {
       return sendError(res, ErrorCode.FORBIDDEN, '无权查看此资料');
     }
 
+    const r = resource as any;
     sendSuccess(res, {
       id: resource.id,
       title: resource.title,
@@ -288,9 +295,9 @@ export async function getResourceById(req: Request, res: Response) {
       createdAt: resource.createdAt,
       updatedAt: resource.updatedAt,
       user: {
-        id: resource.user.id,
-        username: resource.user.username,
-        avatarUrl: resource.user.avatarUrl,
+        id: r.user.id,
+        username: r.user.username,
+        avatarUrl: r.user.avatarUrl,
       },
     });
   } catch (error: any) {
@@ -305,7 +312,8 @@ export async function getResourceById(req: Request, res: Response) {
  */
 export async function deleteResource(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {
@@ -352,7 +360,8 @@ export async function deleteResource(req: Request, res: Response) {
  */
 export async function downloadResource(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId; // 可选，用于统计下载
 
     // 查找资料

@@ -3,6 +3,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
 import { logAdminAction } from '../utils/adminLog.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取帖子列表（管理员视图）
@@ -103,7 +104,8 @@ export async function getPosts(req: Request, res: Response) {
  */
 export async function deletePost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const adminId = req.user!.userId;
 
     // 查找帖子
@@ -154,7 +156,8 @@ export async function deletePost(req: Request, res: Response) {
  */
 export async function restorePost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const adminId = req.user!.userId;
 
     const post = await prisma.post.findUnique({
@@ -200,7 +203,8 @@ export async function restorePost(req: Request, res: Response) {
  */
 export async function pinPost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const adminId = req.user!.userId;
 
     const post = await prisma.post.update({
@@ -229,7 +233,8 @@ export async function pinPost(req: Request, res: Response) {
  */
 export async function unpinPost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const adminId = req.user!.userId;
 
     const post = await prisma.post.update({
@@ -258,7 +263,8 @@ export async function unpinPost(req: Request, res: Response) {
  */
 export async function lockPost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const adminId = req.user!.userId;
 
     const post = await prisma.post.update({
@@ -287,7 +293,8 @@ export async function lockPost(req: Request, res: Response) {
  */
 export async function unlockPost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const adminId = req.user!.userId;
 
     const post = await prisma.post.update({

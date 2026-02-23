@@ -3,6 +3,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
 import { logAdminAction } from '../utils/adminLog.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取分类列表（管理员视图，包含所有分类）
@@ -14,23 +15,12 @@ export async function getCategories(req: Request, res: Response) {
       orderBy: {
         sortOrder: 'asc',
       },
-      include: {
-        _count: {
-          select: {
-            posts: {
-              where: {
-                isDeleted: false,
-              },
-            },
-          },
-        },
-      },
     });
 
-    // 格式化数据，使用实际的帖子数量
+    // 使用 Category 的 postCount 字段
     const formattedCategories = categories.map((category) => ({
       ...category,
-      postCount: category._count.posts,
+      postCount: category.postCount,
     }));
 
     sendSuccess(res, { categories: formattedCategories });
@@ -105,7 +95,11 @@ export async function createCategory(req: Request, res: Response) {
  */
 export async function updateCategory(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) {
+      sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
+      return;
+    }
     const { name, slug, description, icon, color, sortOrder, isActive } = req.body;
     const adminId = req.user!.userId;
 
@@ -165,22 +159,15 @@ export async function updateCategory(req: Request, res: Response) {
  */
 export async function deleteCategory(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) {
+      sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
+      return;
+    }
     const adminId = req.user!.userId;
 
     const category = await prisma.category.findUnique({
       where: { id },
-      include: {
-        _count: {
-          select: {
-            posts: {
-              where: {
-                isDeleted: false,
-              },
-            },
-          },
-        },
-      },
     });
 
     if (!category) {
@@ -188,9 +175,9 @@ export async function deleteCategory(req: Request, res: Response) {
       return;
     }
 
-    // 检查是否有帖子使用此分类
-    if (category._count.posts > 0) {
-      sendError(res, ErrorCode.VALIDATION_ERROR, `该分类下有 ${category._count.posts} 个帖子，无法删除`);
+    // 检查是否有帖子使用此分类（使用 Category 的 postCount 字段）
+    if (category.postCount > 0) {
+      sendError(res, ErrorCode.VALIDATION_ERROR, `该分类下有 ${category.postCount} 个帖子，无法删除`);
       return;
     }
 

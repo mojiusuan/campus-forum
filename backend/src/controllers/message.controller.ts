@@ -2,6 +2,7 @@ import type { Request, Response } from 'express-serve-static-core';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取对话列表
@@ -58,7 +59,8 @@ export async function getConversations(req: Request, res: Response) {
 
     for (const message of messages) {
       // 确定对方用户
-      const otherUser = message.senderId === userId ? message.receiver : message.sender;
+      const m = message as any;
+      const otherUser = message.senderId === userId ? m.receiver : m.sender;
       const otherUserId = otherUser.id;
 
       // 如果对话已存在，检查是否需要更新最后一条消息
@@ -116,7 +118,8 @@ export async function getConversations(req: Request, res: Response) {
  */
 export async function getConversation(req: Request, res: Response) {
   try {
-    const { userId: otherUserId } = req.params;
+    const otherUserId = getParam(req, 'userId');
+    if (!otherUserId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的用户ID'); return; }
     const userId = (req as any).user?.userId;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -187,20 +190,23 @@ export async function getConversation(req: Request, res: Response) {
     ]);
 
     // 格式化消息数据
-    const formattedMessages = messages.map((message) => ({
-      id: message.id,
-      content: message.content,
-      imageUrl: message.imageUrl,
-      isRead: message.isRead,
-      readAt: message.readAt,
-      createdAt: message.createdAt,
-      sender: {
-        id: message.sender.id,
-        username: message.sender.username,
-        avatarUrl: message.sender.avatarUrl,
-      },
-      isOwn: message.senderId === userId,
-    }));
+    const formattedMessages = messages.map((message) => {
+      const m = message as any;
+      return {
+        id: message.id,
+        content: message.content,
+        imageUrl: message.imageUrl,
+        isRead: message.isRead,
+        readAt: message.readAt,
+        createdAt: message.createdAt,
+        sender: {
+          id: m.sender.id,
+          username: m.sender.username,
+          avatarUrl: m.sender.avatarUrl,
+        },
+        isOwn: message.senderId === userId,
+      };
+    });
 
     sendSuccess(res, {
       user: {
@@ -230,7 +236,8 @@ export async function getConversation(req: Request, res: Response) {
  */
 export async function sendMessage(req: Request, res: Response) {
   try {
-    const { userId: receiverId } = req.params;
+    const receiverId = getParam(req, 'userId');
+    if (!receiverId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的用户ID'); return; }
     const { content, imageUrl } = req.body;
     const senderId = (req as any).user?.userId;
 
@@ -284,6 +291,7 @@ export async function sendMessage(req: Request, res: Response) {
       },
     });
 
+    const m = message as any;
     sendSuccess(res, {
       id: message.id,
       content: message.content,
@@ -291,9 +299,9 @@ export async function sendMessage(req: Request, res: Response) {
       isRead: message.isRead,
       createdAt: message.createdAt,
       sender: {
-        id: message.sender.id,
-        username: message.sender.username,
-        avatarUrl: message.sender.avatarUrl,
+        id: m.sender.id,
+        username: m.sender.username,
+        avatarUrl: m.sender.avatarUrl,
       },
     }, '消息发送成功', 201);
   } catch (error: any) {
@@ -308,7 +316,8 @@ export async function sendMessage(req: Request, res: Response) {
  */
 export async function markMessageAsRead(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {

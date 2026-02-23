@@ -2,6 +2,7 @@ import type { Request, Response } from 'express-serve-static-core';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 点赞帖子
@@ -9,7 +10,8 @@ import prisma from '../utils/db.js';
  */
 export async function likePost(req: Request, res: Response) {
   try {
-    const { id: postId } = req.params;
+    const postId = getParam(req, 'id');
+    if (!postId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {
@@ -79,7 +81,8 @@ export async function likePost(req: Request, res: Response) {
  */
 export async function unlikePost(req: Request, res: Response) {
   try {
-    const { id: postId } = req.params;
+    const postId = getParam(req, 'id');
+    if (!postId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {
@@ -143,7 +146,8 @@ export async function unlikePost(req: Request, res: Response) {
  */
 export async function likeComment(req: Request, res: Response) {
   try {
-    const { id: commentId } = req.params;
+    const commentId = getParam(req, 'id');
+    if (!commentId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {
@@ -213,7 +217,8 @@ export async function likeComment(req: Request, res: Response) {
  */
 export async function unlikeComment(req: Request, res: Response) {
   try {
-    const { id: commentId } = req.params;
+    const commentId = getParam(req, 'id');
+    if (!commentId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {
@@ -277,7 +282,8 @@ export async function unlikeComment(req: Request, res: Response) {
  */
 export async function favoritePost(req: Request, res: Response) {
   try {
-    const { id: postId } = req.params;
+    const postId = getParam(req, 'id');
+    if (!postId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {
@@ -345,7 +351,8 @@ export async function favoritePost(req: Request, res: Response) {
  */
 export async function unfavoritePost(req: Request, res: Response) {
   try {
-    const { id: postId } = req.params;
+    const postId = getParam(req, 'id');
+    if (!postId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {

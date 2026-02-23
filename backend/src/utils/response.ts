@@ -3,19 +3,26 @@ import { ErrorCode } from '../types/api.js';
 
 /**
  * 发送成功响应
+ * @overload sendSuccess(res, data) - 200
+ * @overload sendSuccess(res, data, message) - 200
+ * @overload sendSuccess(res, data, statusCode) - 自定义状态码
+ * @overload sendSuccess(res, data, message, statusCode)
  */
 export function sendSuccess<T>(
   res: Response,
   data: T,
-  message?: string,
-  statusCode: number = 200
+  messageOrStatus?: string | number,
+  statusCode?: number
 ): void {
+  const isStatus = typeof messageOrStatus === 'number';
+  const status = isStatus ? messageOrStatus : (statusCode ?? 200);
+  const message = isStatus ? undefined : (messageOrStatus as string | undefined);
   const response = {
     success: true as const,
     data,
     ...(message && { message }),
   };
-  res.status(statusCode).json(response);
+  res.status(status).json(response);
 }
 
 /**

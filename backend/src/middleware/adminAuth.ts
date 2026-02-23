@@ -3,18 +3,7 @@ import { sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
 
-// 扩展Request类型
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        userId: string;
-        email: string;
-        role?: string;
-      };
-    }
-  }
-}
+// Request.user 类型由 auth.ts 扩展
 
 /**
  * 要求管理员权限

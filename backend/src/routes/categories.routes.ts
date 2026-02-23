@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 
 const router = Router();
 
@@ -41,7 +42,8 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { return sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); }
 
     const category = await prisma.category.findUnique({
       where: { id },

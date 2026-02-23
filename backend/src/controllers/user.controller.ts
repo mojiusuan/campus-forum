@@ -2,6 +2,7 @@ import type { Request, Response } from 'express-serve-static-core';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取用户信息
@@ -9,7 +10,8 @@ import prisma from '../utils/db.js';
  */
 export async function getUserById(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const currentUserId = (req as any).user?.userId; // 可选，用于判断是否关注
 
     // 查找用户
@@ -92,7 +94,8 @@ export async function getUserById(req: Request, res: Response) {
  */
 export async function updateUser(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const { username, bio, avatarUrl, phone } = req.body;
     const userId = (req as any).user?.userId;
 

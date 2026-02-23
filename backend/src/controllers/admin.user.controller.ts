@@ -4,6 +4,7 @@ import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
 import { logAdminAction } from '../utils/adminLog.js';
 import { hashPassword } from '../utils/password.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取用户列表
@@ -111,7 +112,11 @@ export async function getUsers(req: Request, res: Response) {
  */
 export async function getUserById(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) {
+      sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
+      return;
+    }
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -130,20 +135,7 @@ export async function getUserById(req: Request, res: Response) {
         createdAt: true,
         updatedAt: true,
         _count: {
-          select: {
-            posts: {
-              where: {
-                isDeleted: false,
-              },
-            },
-            comments: {
-              where: {
-                isDeleted: false,
-              },
-            },
-            followers: true,
-            following: true,
-          },
+          select: { posts: true, comments: true, followers: true, following: true },
         },
       },
     });
@@ -215,7 +207,11 @@ export async function getUserById(req: Request, res: Response) {
  */
 export async function banUser(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) {
+      sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
+      return;
+    }
     const { reason } = req.body;
     const adminId = req.user!.userId;
 
@@ -276,7 +272,11 @@ export async function banUser(req: Request, res: Response) {
  */
 export async function unbanUser(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) {
+      sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
+      return;
+    }
     const adminId = req.user!.userId;
 
     const user = await prisma.user.findUnique({
@@ -319,7 +319,11 @@ export async function unbanUser(req: Request, res: Response) {
  */
 export async function updateUser(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) {
+      sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
+      return;
+    }
     const { username, email, role, isActive } = req.body;
     const adminId = req.user!.userId;
 
@@ -391,7 +395,11 @@ export async function updateUser(req: Request, res: Response) {
  */
 export async function resetPassword(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) {
+      sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
+      return;
+    }
     const { newPassword } = req.body;
     const adminId = req.user!.userId;
 

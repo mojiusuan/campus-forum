@@ -28,7 +28,7 @@ interface LogAdminActionParams {
   adminId: string;
   action: AdminAction;
   targetType?: TargetType;
-  targetId?: string;
+  targetId?: string | null;
   description?: string;
   req?: Request;
 }

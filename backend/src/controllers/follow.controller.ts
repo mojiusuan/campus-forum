@@ -2,6 +2,7 @@ import type { Request, Response } from 'express-serve-static-core';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 关注用户
@@ -9,7 +10,8 @@ import prisma from '../utils/db.js';
  */
 export async function followUser(req: Request, res: Response) {
   try {
-    const { id: followingId } = req.params;
+    const followingId = getParam(req, 'id');
+    if (!followingId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const followerId = (req as any).user?.userId;
 
     if (!followerId) {
@@ -71,7 +73,8 @@ export async function followUser(req: Request, res: Response) {
  */
 export async function unfollowUser(req: Request, res: Response) {
   try {
-    const { id: followingId } = req.params;
+    const followingId = getParam(req, 'id');
+    if (!followingId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const followerId = (req as any).user?.userId;
 
     if (!followerId) {
@@ -123,7 +126,8 @@ export async function unfollowUser(req: Request, res: Response) {
  */
 export async function getFollowing(req: Request, res: Response) {
   try {
-    const { id: userId } = req.params;
+    const userId = getParam(req, 'id');
+    if (!userId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
@@ -168,14 +172,17 @@ export async function getFollowing(req: Request, res: Response) {
     ]);
 
     // 格式化响应数据
-    const following = follows.map((follow) => ({
-      id: follow.following.id,
-      username: follow.following.username,
-      avatarUrl: follow.following.avatarUrl,
-      bio: follow.following.bio,
-      isVerified: follow.following.isVerified,
-      followedAt: follow.createdAt,
-    }));
+    const following = follows.map((follow) => {
+      const f = follow as any;
+      return {
+        id: f.following.id,
+        username: f.following.username,
+        avatarUrl: f.following.avatarUrl,
+        bio: f.following.bio,
+        isVerified: f.following.isVerified,
+        followedAt: follow.createdAt,
+      };
+    });
 
     sendSuccess(res, {
       following,
@@ -200,7 +207,8 @@ export async function getFollowing(req: Request, res: Response) {
  */
 export async function getFollowers(req: Request, res: Response) {
   try {
-    const { id: userId } = req.params;
+    const userId = getParam(req, 'id');
+    if (!userId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
@@ -260,15 +268,18 @@ export async function getFollowers(req: Request, res: Response) {
     }
 
     // 格式化响应数据
-    const followers = follows.map((follow) => ({
-      id: follow.follower.id,
-      username: follow.follower.username,
-      avatarUrl: follow.follower.avatarUrl,
-      bio: follow.follower.bio,
-      isVerified: follow.follower.isVerified,
-      followedAt: follow.createdAt,
-      isFollowing: currentUserId ? followingIds.includes(follow.follower.id) : false,
-    }));
+    const followers = follows.map((follow) => {
+      const f = follow as any;
+      return {
+        id: f.follower.id,
+        username: f.follower.username,
+        avatarUrl: f.follower.avatarUrl,
+        bio: f.follower.bio,
+        isVerified: f.follower.isVerified,
+        followedAt: follow.createdAt,
+        isFollowing: currentUserId ? followingIds.includes(f.follower.id) : false,
+      };
+    });
 
     sendSuccess(res, {
       followers,

@@ -4,13 +4,14 @@ import { sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
 
-// 扩展Request类型，添加user属性
+// 扩展Request类型，添加user属性（auth 与 adminAuth 共用）
 declare global {
   namespace Express {
     interface Request {
       user?: {
         userId: string;
         email: string;
+        role?: string;
       };
     }
   }

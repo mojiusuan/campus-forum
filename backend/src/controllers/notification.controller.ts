@@ -2,6 +2,7 @@ import type { Request, Response } from 'express-serve-static-core';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取通知列表
@@ -80,7 +81,8 @@ export async function getNotifications(req: Request, res: Response) {
  */
 export async function markNotificationAsRead(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {

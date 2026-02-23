@@ -3,6 +3,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
 import { logAdminAction } from '../utils/adminLog.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取评论列表（管理员视图）
@@ -95,7 +96,8 @@ export async function getComments(req: Request, res: Response) {
  */
 export async function deleteComment(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const adminId = req.user!.userId;
 
     // 查找评论
@@ -161,7 +163,8 @@ export async function deleteComment(req: Request, res: Response) {
  */
 export async function restoreComment(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const adminId = req.user!.userId;
 
     const comment = await prisma.comment.findUnique({

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express-serve-static-core';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取评论列表
@@ -9,7 +10,8 @@ import prisma from '../utils/db.js';
  */
 export async function getComments(req: Request, res: Response) {
   try {
-    const { postId } = req.params;
+    const postId = getParam(req, 'postId');
+    if (!postId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的帖子ID'); return; }
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
@@ -76,7 +78,7 @@ export async function getComments(req: Request, res: Response) {
 
     // 获取所有评论和回复的ID
     const commentIds = comments.map((c) => c.id);
-    const replyIds = comments.flatMap((c) => c.replies.map((r) => r.id));
+    const replyIds = comments.flatMap((c) => (c as any).replies.map((r: any) => r.id));
     const allCommentIds = [...commentIds, ...replyIds];
 
     // 查询当前用户对这些评论的点赞状态
@@ -93,35 +95,38 @@ export async function getComments(req: Request, res: Response) {
     const likedCommentIds = new Set(userLikes.map((like) => like.targetId));
 
     // 格式化响应数据
-    const formattedComments = comments.map((comment) => ({
-      id: comment.id,
-      userId: comment.userId,
-      content: comment.content,
-      likeCount: comment.likeCount,
-      replyCount: comment.replyCount,
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-      isLiked: likedCommentIds.has(comment.id),
-      user: {
-        id: comment.user.id,
-        username: comment.user.username,
-        avatarUrl: comment.user.avatarUrl,
-      },
-      replies: comment.replies.map((reply) => ({
-        id: reply.id,
-        userId: reply.userId,
-        content: reply.content,
-        likeCount: reply.likeCount,
-        createdAt: reply.createdAt,
-        updatedAt: reply.updatedAt,
-        isLiked: likedCommentIds.has(reply.id),
+    const formattedComments = comments.map((comment) => {
+      const c = comment as any;
+      return {
+        id: comment.id,
+        userId: comment.userId,
+        content: comment.content,
+        likeCount: comment.likeCount,
+        replyCount: comment.replyCount,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+        isLiked: likedCommentIds.has(comment.id),
         user: {
-          id: reply.user.id,
-          username: reply.user.username,
-          avatarUrl: reply.user.avatarUrl,
+          id: c.user.id,
+          username: c.user.username,
+          avatarUrl: c.user.avatarUrl,
         },
-      })),
-    }));
+        replies: c.replies.map((reply: any) => ({
+          id: reply.id,
+          userId: reply.userId,
+          content: reply.content,
+          likeCount: reply.likeCount,
+          createdAt: reply.createdAt,
+          updatedAt: reply.updatedAt,
+          isLiked: likedCommentIds.has(reply.id),
+          user: {
+            id: reply.user.id,
+            username: reply.user.username,
+            avatarUrl: reply.user.avatarUrl,
+          },
+        })),
+      };
+    });
 
     sendSuccess(res, {
       comments: formattedComments,
@@ -146,7 +151,8 @@ export async function getComments(req: Request, res: Response) {
  */
 export async function createComment(req: Request, res: Response) {
   try {
-    const { postId } = req.params;
+    const postId = getParam(req, 'postId');
+    if (!postId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的帖子ID'); return; }
     const { content, parentId } = req.body;
     const userId = (req as any).user?.userId;
 
@@ -224,6 +230,7 @@ export async function createComment(req: Request, res: Response) {
       });
     }
 
+    const c = comment as any;
     sendSuccess(res, {
       id: comment.id,
       content: comment.content,
@@ -232,9 +239,9 @@ export async function createComment(req: Request, res: Response) {
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,
       user: {
-        id: comment.user.id,
-        username: comment.user.username,
-        avatarUrl: comment.user.avatarUrl,
+        id: c.user.id,
+        username: c.user.username,
+        avatarUrl: c.user.avatarUrl,
       },
     }, '评论创建成功', 201);
   } catch (error: any) {
@@ -249,7 +256,8 @@ export async function createComment(req: Request, res: Response) {
  */
 export async function updateComment(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const { content } = req.body;
     const userId = (req as any).user?.userId;
 
@@ -301,6 +309,7 @@ export async function updateComment(req: Request, res: Response) {
       },
     });
 
+    const uc = updatedComment as any;
     sendSuccess(res, {
       id: updatedComment.id,
       content: updatedComment.content,
@@ -309,9 +318,9 @@ export async function updateComment(req: Request, res: Response) {
       createdAt: updatedComment.createdAt,
       updatedAt: updatedComment.updatedAt,
       user: {
-        id: updatedComment.user.id,
-        username: updatedComment.user.username,
-        avatarUrl: updatedComment.user.avatarUrl,
+        id: uc.user.id,
+        username: uc.user.username,
+        avatarUrl: uc.user.avatarUrl,
       },
     }, '评论更新成功');
   } catch (error: any) {
@@ -326,7 +335,8 @@ export async function updateComment(req: Request, res: Response) {
  */
 export async function deleteComment(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     if (!userId) {

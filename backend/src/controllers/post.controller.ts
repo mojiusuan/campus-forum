@@ -2,6 +2,7 @@ import type { Request, Response } from 'express-serve-static-core';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取帖子列表
@@ -103,7 +104,8 @@ export async function getPosts(req: Request, res: Response) {
  */
 export async function getPostById(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user?.userId;
 
     // 查找帖子
@@ -246,7 +248,8 @@ export async function createPost(req: Request, res: Response) {
  */
 export async function updatePost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user!.userId;
     const { title, content, categoryId, images } = req.body;
 
@@ -316,7 +319,8 @@ export async function updatePost(req: Request, res: Response) {
  */
 export async function deletePost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
+    if (!id) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
     const userId = (req as any).user!.userId;
 
     // 查找帖子
