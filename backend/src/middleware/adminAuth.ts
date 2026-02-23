@@ -42,7 +42,7 @@ export async function requireAdmin(
     }
 
     // 将角色信息添加到req.user
-    req.user.role = user.role;
+    req.user = { ...req.user, role: user.role };
 
     next();
   } catch (error: any) {
@@ -80,7 +80,7 @@ export async function requireSuperAdmin(
       return;
     }
 
-    req.user.role = user.role;
+    req.user = { ...req.user, role: user.role };
     next();
   } catch (error: any) {
     sendError(res, ErrorCode.INTERNAL_ERROR, error.message || '权限验证失败');

@@ -16,8 +16,8 @@ export interface JWTPayload {
  */
 export function generateToken(payload: { userId: string; email: string; role?: string }): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
-  });
+    expiresIn: JWT_EXPIRES_IN,
+  } as jwt.SignOptions);
 }
 
 /**
@@ -50,5 +50,6 @@ export function extractTokenFromHeader(authHeader: string | undefined): string |
     return null;
   }
 
-  return parts[1] ?? null;
+  const token = parts[1];
+  return token !== undefined ? token : null;
 }
