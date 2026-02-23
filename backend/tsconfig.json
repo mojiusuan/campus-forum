@@ -12,7 +12,7 @@
     "types": [],
     // For nodejs:
     "lib": ["esnext"],
-    "types": ["node"],
+    "types": ["node", "pg"],
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "skipLibCheck": true,
