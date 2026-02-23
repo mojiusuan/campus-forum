@@ -28,7 +28,7 @@ interface LogAdminActionParams {
   adminId: string;
   action: AdminAction;
   targetType?: TargetType;
-  targetId?: string | null;
+  targetId?: string | string[] | null | undefined;
   description?: string;
   req?: Request;
 }
@@ -39,7 +39,8 @@ interface LogAdminActionParams {
  */
 export async function logAdminAction(params: LogAdminActionParams): Promise<void> {
   try {
-    const { adminId, action, targetType, targetId, description, req } = params;
+    const { adminId, action, targetType, targetId: rawTargetId, description, req } = params;
+    const targetId = Array.isArray(rawTargetId) ? rawTargetId[0] : rawTargetId;
 
     // 获取IP地址
     const ipAddress = req?.ip || 

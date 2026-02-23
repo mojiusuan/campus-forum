@@ -83,7 +83,7 @@ export async function createCategory(req: Request, res: Response) {
       req,
     });
 
-    sendSuccess(res, { category }, 201);
+    sendSuccess(res, { category }, undefined, 201);
   } catch (error: any) {
     sendError(res, ErrorCode.INTERNAL_ERROR, error.message || '创建分类失败');
   }
