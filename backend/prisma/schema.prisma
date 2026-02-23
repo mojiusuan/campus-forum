@@ -1,0 +1,307 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// 用户表
+// ============================================
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  username    String   @unique
+  passwordHash String  @map("password_hash")
+  phone       String?  @unique
+  avatarUrl   String?  @map("avatar_url")
+  bio         String?  @db.Text
+  isVerified  Boolean  @default(false) @map("is_verified")
+  isActive    Boolean  @default(true) @map("is_active")
+  role        String   @default("user") // 'user' | 'admin' | 'super_admin'
+  isAdmin     Boolean  @default(false) @map("is_admin") // 兼容字段
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // 关系
+  posts           Post[]
+  comments        Comment[]
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  likes            Like[]
+  favorites        Favorite[]
+  followers        Follow[] @relation("Follower")
+  following        Follow[] @relation("Following")
+  notifications    Notification[]
+  resources        Resource[]
+  adminLogs        AdminLog[] @relation("AdminLogs")
+
+  @@index([email])
+  @@index([username])
+  @@index([phone])
+  @@index([role])
+  @@map("users")
+}
+
+// ============================================
+// 分类表
+// ============================================
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  icon        String?
+  color       String?  @default("#3b82f6")
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  postCount   Int      @default(0) @map("post_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // 关系
+  posts Post[]
+
+  @@index([slug])
+  @@index([sortOrder])
+  @@map("categories")
+}
+
+// ============================================
+// 帖子表
+// ============================================
+model Post {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  categoryId   String   @map("category_id")
+  title        String
+  content      String   @db.Text
+  images       String[] @default([])
+  viewCount    Int      @default(0) @map("view_count")
+  likeCount    Int      @default(0) @map("like_count")
+  commentCount Int      @default(0) @map("comment_count")
+  favoriteCount Int     @default(0) @map("favorite_count")
+  isPinned     Boolean  @default(false) @map("is_pinned")
+  isLocked     Boolean  @default(false) @map("is_locked")
+  isDeleted    Boolean  @default(false) @map("is_deleted")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  // 关系
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  Category  @relation(fields: [categoryId], references: [id])
+  comments  Comment[]
+  // 注意：likes关系通过多态设计实现，无法直接定义
+  favorites Favorite[]
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([createdAt(sort: Desc)])
+  @@index([likeCount(sort: Desc)])
+  @@index([viewCount(sort: Desc)])
+  @@index([isDeleted, createdAt(sort: Desc)])
+  @@map("posts")
+}
+
+// ============================================
+// 评论表（支持嵌套回复）
+// ============================================
+model Comment {
+  id           String   @id @default(uuid())
+  postId       String   @map("post_id")
+  userId       String   @map("user_id")
+  parentId     String?  @map("parent_id")
+  content      String   @db.Text
+  likeCount    Int      @default(0) @map("like_count")
+  replyCount   Int      @default(0) @map("reply_count")
+  isDeleted    Boolean  @default(false) @map("is_deleted")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  // 关系
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  // 注意：likes关系通过多态设计实现，无法直接定义
+
+  @@index([postId])
+  @@index([userId])
+  @@index([parentId])
+  @@index([createdAt(sort: Desc)])
+  @@index([isDeleted, createdAt(sort: Desc)])
+  @@map("comments")
+}
+
+// ============================================
+// 点赞表（支持帖子和评论）
+// ============================================
+model Like {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  targetType String   @map("target_type") // 'post' | 'comment'
+  targetId   String   @map("target_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // 关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 注意：由于使用多态设计（targetType + targetId），
+  // 无法直接定义与Post和Comment的关系
+  // 需要在应用层通过targetType和targetId关联
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("likes")
+}
+
+// ============================================
+// 收藏表
+// ============================================
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  postId    String   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt(sort: Desc)])
+  @@map("favorites")
+}
+
+// ============================================
+// 私信表
+// ============================================
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String   @map("sender_id")
+  receiverId String   @map("receiver_id")
+  content    String   @db.Text
+  imageUrl   String?  @map("image_url")
+  isRead     Boolean  @default(false) @map("is_read")
+  readAt     DateTime? @map("read_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // 关系
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User   @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, receiverId])
+  @@index([receiverId, isRead])
+  @@index([receiverId, createdAt(sort: Desc)])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+// ============================================
+// 通知表
+// ============================================
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String   // 'like' | 'comment' | 'reply' | 'follow' | 'message' | 'system'
+  title     String
+  content   String   @db.Text
+  link      String?
+  relatedId String?  @map("related_id") // 关联的ID（帖子ID、评论ID等）
+  isRead    Boolean  @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([type])
+  @@map("notifications")
+}
+
+// ============================================
+// 学习资料表
+// ============================================
+model Resource {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  title         String
+  description   String?  @db.Text
+  fileUrl       String   @map("file_url")
+  fileName      String   @map("file_name")
+  fileSize      Int      @map("file_size") // 字节
+  fileType      String   @map("file_type") // 'pdf' | 'doc' | 'docx' | 'ppt' | 'pptx' | 'xls' | 'xlsx' | 'zip' | 'rar' | 'other'
+  downloadCount Int      @default(0) @map("download_count")
+  isPublic      Boolean  @default(true) @map("is_public")
+  isDeleted     Boolean  @default(false) @map("is_deleted")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  // 关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isPublic, isDeleted])
+  @@index([createdAt(sort: Desc)])
+  @@index([downloadCount(sort: Desc)])
+  @@map("resources")
+}
+
+// ============================================
+// 关注表
+// ============================================
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // 关系
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@index([createdAt])
+  @@map("follows")
+}
+
+// ============================================
+// 管理员操作日志表
+// ============================================
+model AdminLog {
+  id          String   @id @default(uuid())
+  adminId     String   @map("admin_id")
+  action      String   // 'delete_post' | 'ban_user' | 'create_category' 等
+  targetType  String?  @map("target_type") // 'post' | 'user' | 'comment' | 'category' | 'resource'
+  targetId    String?  @map("target_id")
+  description String?  @db.Text
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // 关系
+  admin User @relation("AdminLogs", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt(sort: Desc)])
+  @@map("admin_logs")
+}

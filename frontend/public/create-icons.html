@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PWA图标生成器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 600px;
+      width: 100%;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .preview {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin: 30px 0;
+      flex-wrap: wrap;
+    }
+    .icon-preview {
+      text-align: center;
+    }
+    canvas {
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 10px;
+    }
+    .size-label {
+      color: #666;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .controls {
+      margin: 30px 0;
+    }
+    .control-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      color: #333;
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    input[type="text"],
+    input[type="color"] {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    input[type="color"] {
+      height: 50px;
+      cursor: pointer;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    button {
+      flex: 1;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #333;
+    }
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+    .success {
+      background: #10b981;
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 PWA图标生成器</h1>
+    <p class="subtitle">为校园论坛生成应用图标</p>
+    
+    <div class="preview">
+      <div class="icon-preview">
+        <canvas id="icon192" width="192" height="192"></canvas>
+        <div class="size-label">192×192</div>
+      </div>
+      <div class="icon-preview">
+        <canvas id="icon512" width="512" height="512"></canvas>
+        <div class="size-label">512×512</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>图标文字</label>
+        <input type="text" id="iconText" value="论" maxlength="2" placeholder="输入1-2个字符">
+      </div>
+      <div class="control-group">
+        <label>背景颜色</label>
+        <input type="color" id="bgColor" value="#3b82f6">
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button class="btn-primary" onclick="generateIcons()">🔄 重新生成</button>
+      <button class="btn-secondary" onclick="downloadIcon(192)">📥 下载192×192</button>
+      <button class="btn-secondary" onclick="downloadIcon(512)">📥 下载512×512</button>
+    </div>
+
+    <div class="success" id="successMsg"></div>
+  </div>
+
+  <script>
+    function drawIcon(canvas, size, text, bgColor) {
+      const ctx = canvas.getContext('2d');
+      const radius = size * 0.15;
+      
+      // 清空画布
+      ctx.clearRect(0, 0, size, size);
+      
+      // 绘制圆角矩形背景
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(size - radius, 0);
+      ctx.quadraticCurveTo(size, 0, size, radius);
+      ctx.lineTo(size, size - radius);
+      ctx.quadraticCurveTo(size, size, size - radius, size);
+      ctx.lineTo(radius, size);
+      ctx.quadraticCurveTo(0, size, 0, size - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.fill();
+      
+      // 绘制文字
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${size * 0.4}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, size / 2, size / 2);
+    }
+
+    function generateIcons() {
+      const text = document.getElementById('iconText').value || '论';
+      const bgColor = document.getElementById('bgColor').value;
+      
+      const canvas192 = document.getElementById('icon192');
+      const canvas512 = document.getElementById('icon512');
+      
+      drawIcon(canvas192, 192, text, bgColor);
+      drawIcon(canvas512, 512, text, bgColor);
+    }
+
+    function downloadIcon(size) {
+      const canvas = document.getElementById(`icon${size}`);
+      const link = document.createElement('a');
+      link.download = `icon-${size}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      // 显示成功消息
+      const msg = document.getElementById('successMsg');
+      msg.textContent = `✅ icon-${size}.png 已下载！请将文件放到 frontend/public/ 目录`;
+      msg.style.display = 'block';
+      setTimeout(() => {
+        msg.style.display = 'none';
+      }, 3000);
+    }
+
+    // 监听输入变化
+    document.getElementById('iconText').addEventListener('input', generateIcons);
+    document.getElementById('bgColor').addEventListener('input', generateIcons);
+
+    // 初始化
+    generateIcons();
+  </script>
+</body>
+</html>
