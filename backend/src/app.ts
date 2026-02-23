@@ -1,6 +1,6 @@
+import 'dotenv/config'; // 必须最先加载，确保 db 等模块能读取到 .env
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -23,9 +23,6 @@ import searchRoutes from './routes/search.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import resourcesRoutes from './routes/resources.routes.js';
 import adminRoutes from './routes/admin.routes.js';
-
-// 加载环境变量
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
