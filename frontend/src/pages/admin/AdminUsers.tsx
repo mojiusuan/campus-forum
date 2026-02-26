@@ -10,9 +10,11 @@ import Pagination from '../../components/Pagination';
 import { ListSkeleton } from '../../components/LoadingSkeleton';
 import { Search, Ban, CheckCircle, Shield, ShieldCheck, User as UserIcon } from 'lucide-react';
 import { getFullUrl } from '../../utils/url';
+import { useIsSuperAdmin } from '../../hooks/useAdmin';
 import type { User } from '../../types/api';
 
 export default function AdminUsers() {
+  const isSuperAdmin = useIsSuperAdmin();
   const [searchParams, setSearchParams] = useState({
     page: 1,
     limit: 20,
@@ -139,7 +141,7 @@ export default function AdminUsers() {
                   <option value="all">所有角色</option>
                   <option value="user">普通用户</option>
                   <option value="admin">管理员</option>
-                  <option value="super_admin">超级管理员</option>
+                  {isSuperAdmin && <option value="super_admin">超级管理员</option>}
                 </select>
               </div>
               <div>

@@ -106,6 +106,13 @@ export default function AdminUserDetail() {
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow-sm p-8 text-center text-gray-500">
             <p>用户不存在</p>
+            <Link
+              to="/admin/users"
+              className="mt-4 inline-flex items-center text-blue-600 hover:underline"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              返回用户列表
+            </Link>
           </div>
         </div>
       </AdminLayout>

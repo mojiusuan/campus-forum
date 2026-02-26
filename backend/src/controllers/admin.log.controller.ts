@@ -39,9 +39,14 @@ export async function getLogs(req: Request, res: Response) {
       if (startDate) {
         where.createdAt.gte = new Date(startDate);
       }
-      if (endDate) {
-        where.createdAt.lte = new Date(endDate);
+    if (endDate) {
+      where.createdAt.lte = new Date(endDate);
       }
+    }
+
+    // 普通管理员不显示由超级管理员执行的操作日志
+    if (req.user?.role === 'admin') {
+      where.admin = { role: { not: 'super_admin' } };
     }
 
     // 查询日志

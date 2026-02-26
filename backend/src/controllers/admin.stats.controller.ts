@@ -9,9 +9,15 @@ import prisma from '../utils/db.js';
  */
 export async function getOverview(req: Request, res: Response) {
   try {
+    // 普通管理员统计中不包含超级管理员
+    const userCountWhere: any = { isActive: true };
+    if (req.user?.role === 'admin') {
+      userCountWhere.role = { not: 'super_admin' };
+    }
+
     // 获取用户总数
     const totalUsers = await prisma.user.count({
-      where: { isActive: true },
+      where: userCountWhere,
     });
 
     // 获取活跃用户数（30天内登录）
@@ -19,7 +25,7 @@ export async function getOverview(req: Request, res: Response) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const activeUsers = await prisma.user.count({
       where: {
-        isActive: true,
+        ...userCountWhere,
         lastLoginAt: {
           gte: thirtyDaysAgo,
         },
@@ -101,14 +107,18 @@ export async function getUserStats(req: Request, res: Response) {
         startDate = new Date(0); // 全部
     }
 
-    // 按天统计用户注册数
-    const users = await prisma.user.findMany({
-      where: {
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
+    // 按天统计用户注册数（普通管理员不包含超级管理员）
+    const userStatsWhere: any = {
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
       },
+    };
+    if (req.user?.role === 'admin') {
+      userStatsWhere.role = { not: 'super_admin' };
+    }
+    const users = await prisma.user.findMany({
+      where: userStatsWhere,
       select: {
         createdAt: true,
       },

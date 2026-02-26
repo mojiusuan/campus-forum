@@ -35,6 +35,16 @@ export async function getUsers(req: Request, res: Response) {
       where.role = role;
     }
 
+    // 普通管理员不可见超级管理员：列表不包含 super_admin，且不允许按 super_admin 筛选
+    const currentRole = req.user?.role;
+    if (currentRole === 'admin') {
+      if (where.role === 'super_admin') {
+        where.id = { in: [] }; // 筛选超级管理员时返回空
+      } else {
+        where.role = where.role || { not: 'super_admin' };
+      }
+    }
+
     if (keyword) {
       where.OR = [
         { username: { contains: keyword, mode: 'insensitive' } },
@@ -141,6 +151,13 @@ export async function getUserById(req: Request, res: Response) {
     });
 
     if (!user) {
+      sendError(res, ErrorCode.NOT_FOUND, '用户不存在');
+      return;
+    }
+
+    // 普通管理员不能查看超级管理员详情
+    const currentRole = req.user?.role;
+    if (currentRole === 'admin' && user.role === 'super_admin') {
       sendError(res, ErrorCode.NOT_FOUND, '用户不存在');
       return;
     }
@@ -288,6 +305,16 @@ export async function unbanUser(req: Request, res: Response) {
       return;
     }
 
+    // 普通管理员不能操作超级管理员
+    const adminUserUnban = await prisma.user.findUnique({
+      where: { id: adminId },
+      select: { role: true },
+    });
+    if (adminUserUnban?.role === 'admin' && user.role === 'super_admin') {
+      sendError(res, ErrorCode.NOT_FOUND, '用户不存在');
+      return;
+    }
+
     if (user.isActive) {
       sendError(res, ErrorCode.VALIDATION_ERROR, '用户未被封禁');
       return;
@@ -413,6 +440,16 @@ export async function resetPassword(req: Request, res: Response) {
     });
 
     if (!user) {
+      sendError(res, ErrorCode.NOT_FOUND, '用户不存在');
+      return;
+    }
+
+    // 普通管理员不能重置超级管理员密码
+    const adminUser = await prisma.user.findUnique({
+      where: { id: adminId },
+      select: { role: true },
+    });
+    if (adminUser?.role === 'admin' && user.role === 'super_admin') {
       sendError(res, ErrorCode.NOT_FOUND, '用户不存在');
       return;
     }
