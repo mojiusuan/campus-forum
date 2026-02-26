@@ -60,6 +60,7 @@ model Category {
   color       String?  @default("#3b82f6")
   sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
+  isAnonymous Boolean  @default(false) @map("is_anonymous") // 情感树洞匿名板块
   postCount   Int      @default(0) @map("post_count")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

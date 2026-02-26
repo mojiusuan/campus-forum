@@ -3,6 +3,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
 import { getParam } from '../utils/params.js';
+import { getAnonymousUserId, maskUserForAnonymous } from '../utils/anonymous.js';
 
 /**
  * 获取帖子列表
@@ -73,6 +74,7 @@ export async function getPosts(req: Request, res: Response) {
               id: true,
               name: true,
               slug: true,
+              isAnonymous: true,
             },
           },
         },
@@ -80,11 +82,14 @@ export async function getPosts(req: Request, res: Response) {
       prisma.post.count({ where }),
     ]);
 
-    // 计算分页信息
     const totalPages = Math.ceil(total / limit);
+    const postsMasked = posts.map((p: any) => ({
+      ...p,
+      user: maskUserForAnonymous(p.user, p.category?.isAnonymous === true),
+    }));
 
     sendSuccess(res, {
-      posts,
+      posts: postsMasked,
       pagination: {
         page,
         limit,
@@ -124,6 +129,7 @@ export async function getPostById(req: Request, res: Response) {
             id: true,
             name: true,
             slug: true,
+            isAnonymous: true,
           },
         },
       },
@@ -133,6 +139,12 @@ export async function getPostById(req: Request, res: Response) {
       sendError(res, ErrorCode.NOT_FOUND, '帖子不存在');
       return;
     }
+
+    const categoryIsAnonymous = (post.category as any)?.isAnonymous === true;
+    const postForResponse = {
+      ...post,
+      user: maskUserForAnonymous((post as any).user, categoryIsAnonymous),
+    };
 
     // 增加浏览量
     await prisma.post.update({
@@ -170,8 +182,8 @@ export async function getPostById(req: Request, res: Response) {
     }
 
     sendSuccess(res, {
-      ...post,
-      viewCount: post.viewCount + 1, // 返回更新后的浏览量
+      ...postForResponse,
+      viewCount: post.viewCount + 1,
       isLiked,
       isFavorited,
     });
@@ -194,7 +206,6 @@ export async function createPost(req: Request, res: Response) {
       return;
     }
 
-    // 验证分类是否存在
     const category = await prisma.category.findUnique({
       where: { id: categoryId },
     });
@@ -204,13 +215,16 @@ export async function createPost(req: Request, res: Response) {
       return;
     }
 
-    // 创建帖子
+    const authorId = category.isAnonymous
+      ? (await getAnonymousUserId()) ?? userId
+      : userId;
+
     const post = await prisma.post.create({
       data: {
         title,
         content,
         categoryId,
-        userId,
+        userId: authorId,
         images: images || [],
       },
       include: {
@@ -226,18 +240,22 @@ export async function createPost(req: Request, res: Response) {
             id: true,
             name: true,
             slug: true,
+            isAnonymous: true,
           },
         },
       },
     });
 
-    // 更新分类的帖子数量
+    const postResponse = (post as any).category?.isAnonymous
+      ? { ...post, user: maskUserForAnonymous((post as any).user, true) }
+      : post;
+
     await prisma.category.update({
       where: { id: categoryId },
       data: { postCount: { increment: 1 } },
     });
 
-    sendSuccess(res, post, '帖子创建成功');
+    sendSuccess(res, postResponse, '帖子创建成功');
   } catch (error: any) {
     sendError(res, ErrorCode.INTERNAL_ERROR, error.message || '创建帖子失败');
   }

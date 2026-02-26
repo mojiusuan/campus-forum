@@ -27,6 +27,7 @@ router.get('/', async (req, res) => {
         icon: true,
         color: true,
         postCount: true,
+        isAnonymous: true,
       },
     });
 

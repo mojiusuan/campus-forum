@@ -1,17 +1,42 @@
 import "dotenv/config";
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+import { hashPassword } from '../src/utils/password.js';
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL || 'postgresql://forum_user:54TFD99M@localhost:5432/forum?schema=public';
+const pool = new Pool({ connectionString: databaseUrl });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+const ANONYMOUS_USERNAME = '匿名';
 
 async function main() {
-  console.log('🌱 开始创建种子数�?..');
+  console.log('🌱 开始创建种子数据...');
+
+  // 匿名系统用户（情感树洞等匿名板块）
+  let anonymousUser = await prisma.user.findUnique({
+    where: { username: ANONYMOUS_USERNAME },
+  });
+  if (!anonymousUser) {
+    const passwordHash = await hashPassword('anonymous-' + Math.random().toString(36).slice(2));
+    anonymousUser = await prisma.user.create({
+      data: {
+        email: 'anonymous@system.local',
+        username: ANONYMOUS_USERNAME,
+        passwordHash,
+        isActive: true,
+        role: 'user',
+      },
+    });
+    console.log('✅ 创建匿名系统用户');
+  }
 
   // 创建初始分类
   const categories = [
     {
       name: '学习',
       slug: 'study',
-      description: '学习相关话题，包括课程讨论、学习资料分享、考试经验�?,
+      description: '学习相关话题，包括课程讨论、学习资料分享、考试经验等',
       icon: '📚',
       color: '#3b82f6',
       sortOrder: 1,
@@ -56,6 +81,15 @@ async function main() {
       color: '#6b7280',
       sortOrder: 6,
     },
+    {
+      name: '情感树洞',
+      slug: 'treehole',
+      description: '匿名倾诉，安全树洞。发帖与评论均匿名展示。',
+      icon: '🌳',
+      color: '#ec4899',
+      sortOrder: 7,
+      isAnonymous: true,
+    },
   ];
 
   for (const category of categories) {
@@ -67,20 +101,21 @@ async function main() {
       await prisma.category.create({
         data: category,
       });
-      console.log(`�?创建分类: ${category.name}`);
+      console.log(`✅ 创建分类: ${category.name}`);
     } else {
-      console.log(`⏭️  分类已存�? ${category.name}`);
+      console.log(`⏭️  分类已存在: ${category.name}`);
     }
   }
 
-  console.log('�?种子数据创建完成�?);
+  console.log('✅ 种子数据创建完成');
 }
 
 main()
   .catch((e) => {
-    console.error('�?种子数据创建失败:', e);
+    console.error('❌ 种子数据创建失败:', e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

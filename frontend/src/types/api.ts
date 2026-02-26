@@ -111,6 +111,7 @@ export interface Category {
   color?: string;
   sortOrder?: number;
   isActive?: boolean;
+  isAnonymous?: boolean;
   postCount: number;
   createdAt?: string;
   updatedAt?: string;

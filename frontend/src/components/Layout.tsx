@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { notificationsApi } from '../api/notifications';
 import { messagesApi } from '../api/messages';
 import { getFullUrl } from '../utils/url';
-import { LogOut, User, Home, Search, PlusCircle, Bell, MessageSquare, FileText, X, Shield } from 'lucide-react';
+import { LogOut, User, Home, Search, PlusCircle, Bell, MessageSquare, FileText, X, Shield, Sparkles } from 'lucide-react';
 import { useIsAdmin } from '../hooks/useAdmin';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -53,7 +53,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2">
+            <Link to="/forum" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">F</span>
               </div>
@@ -79,8 +79,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <nav className="hidden md:flex items-center space-x-6">
               <Link
                 to="/"
+                className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100"
+              >
+                <Sparkles className="inline-block w-4 h-4 mr-1" />
+                展示页
+              </Link>
+              <Link
+                to="/forum"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  location.pathname === '/'
+                  location.pathname === '/forum'
                     ? 'bg-blue-100 text-blue-700'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
@@ -216,8 +223,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Link
               to="/"
               onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <Sparkles className="inline-block w-4 h-4 mr-2" />
+              展示页
+            </Link>
+            <Link
+              to="/forum"
+              onClick={() => setMobileMenuOpen(false)}
               className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                location.pathname === '/'
+                location.pathname === '/forum'
                   ? 'bg-blue-100 text-blue-700'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}

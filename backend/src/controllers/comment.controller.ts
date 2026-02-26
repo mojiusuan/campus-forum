@@ -3,6 +3,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
 import { getParam } from '../utils/params.js';
+import { getAnonymousUserId, maskUserForAnonymous } from '../utils/anonymous.js';
 
 /**
  * 获取评论列表
@@ -17,14 +18,18 @@ export async function getComments(req: Request, res: Response) {
     const skip = (page - 1) * limit;
     const userId = (req as any).user?.userId; // 获取当前用户ID（如果已登录）
 
-    // 验证帖子是否存在
     const post = await prisma.post.findUnique({
       where: { id: postId },
+      include: {
+        category: { select: { isAnonymous: true } },
+      },
     });
 
     if (!post) {
       return sendError(res, ErrorCode.NOT_FOUND, '帖子不存在');
     }
+
+    const categoryIsAnonymous = (post.category as any)?.isAnonymous === true;
 
     // 获取顶级评论（parentId为null）
     const [comments, total] = await Promise.all([
@@ -94,7 +99,8 @@ export async function getComments(req: Request, res: Response) {
 
     const likedCommentIds = new Set(userLikes.map((like) => like.targetId));
 
-    // 格式化响应数据
+    const maskUser = (u: any) => maskUserForAnonymous(u, categoryIsAnonymous);
+
     const formattedComments = comments.map((comment) => {
       const c = comment as any;
       return {
@@ -106,11 +112,7 @@ export async function getComments(req: Request, res: Response) {
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt,
         isLiked: likedCommentIds.has(comment.id),
-        user: {
-          id: c.user.id,
-          username: c.user.username,
-          avatarUrl: c.user.avatarUrl,
-        },
+        user: maskUser(c.user),
         replies: c.replies.map((reply: any) => ({
           id: reply.id,
           userId: reply.userId,
@@ -119,11 +121,7 @@ export async function getComments(req: Request, res: Response) {
           createdAt: reply.createdAt,
           updatedAt: reply.updatedAt,
           isLiked: likedCommentIds.has(reply.id),
-          user: {
-            id: reply.user.id,
-            username: reply.user.username,
-            avatarUrl: reply.user.avatarUrl,
-          },
+          user: maskUser(reply.user),
         })),
       };
     });
@@ -169,31 +167,33 @@ export async function createComment(req: Request, res: Response) {
       return sendError(res, ErrorCode.VALIDATION_ERROR, '评论内容不能超过5000字符');
     }
 
-    // 验证帖子是否存在
     const post = await prisma.post.findUnique({
       where: { id: postId },
+      include: { category: { select: { isAnonymous: true } } },
     });
 
     if (!post) {
       return sendError(res, ErrorCode.NOT_FOUND, '帖子不存在');
     }
 
-    // 如果parentId存在，验证父评论是否存在
     if (parentId) {
       const parentComment = await prisma.comment.findUnique({
         where: { id: parentId },
       });
-
       if (!parentComment || parentComment.postId !== postId) {
         return sendError(res, ErrorCode.NOT_FOUND, '父评论不存在或不属于该帖子');
       }
     }
 
-    // 创建评论
+    const categoryIsAnonymous = (post.category as any)?.isAnonymous === true;
+    const authorId = categoryIsAnonymous
+      ? (await getAnonymousUserId()) ?? userId
+      : userId;
+
     const comment = await prisma.comment.create({
       data: {
         postId,
-        userId,
+        userId: authorId,
         parentId: parentId || null,
         content: content.trim(),
       },
@@ -231,6 +231,9 @@ export async function createComment(req: Request, res: Response) {
     }
 
     const c = comment as any;
+    const commentUser = categoryIsAnonymous
+      ? maskUserForAnonymous(c.user, true)
+      : { id: c.user.id, username: c.user.username, avatarUrl: c.user.avatarUrl };
     sendSuccess(res, {
       id: comment.id,
       content: comment.content,
@@ -238,11 +241,7 @@ export async function createComment(req: Request, res: Response) {
       replyCount: comment.replyCount,
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,
-      user: {
-        id: c.user.id,
-        username: c.user.username,
-        avatarUrl: c.user.avatarUrl,
-      },
+      user: commentUser,
     }, '评论创建成功', 201);
   } catch (error: any) {
     console.error('创建评论失败:', error);

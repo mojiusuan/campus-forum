@@ -12,6 +12,7 @@ import { useAuthStore } from './store/authStore';
 import { ListSkeleton } from './components/LoadingSkeleton';
 
 // 立即加载的页面（关键路径）
+import Landing from './pages/Landing';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -74,13 +75,16 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <Routes>
+          {/* 展示页：根路径 */}
+          <Route path="/" element={<Landing />} />
+
           {/* 公开路由 */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* 需要布局的路由 */}
+          {/* 论坛首页 */}
           <Route
-            path="/"
+            path="/forum"
             element={
               <Layout>
                 <Home />
@@ -282,8 +286,8 @@ function App() {
             }
           />
 
-          {/* 404 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 跳转到论坛首页 */}
+          <Route path="*" element={<Navigate to="/forum" replace />} />
           </Routes>
         </BrowserRouter>
       </QueryClientProvider>

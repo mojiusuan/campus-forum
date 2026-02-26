@@ -88,6 +88,9 @@ export default function Home() {
                 }`}
               >
                 {category.name}
+                {category.isAnonymous && (
+                  <span className="ml-1 text-xs text-pink-600">匿名</span>
+                )}
                 <span className="ml-2 text-xs text-gray-500">({category.postCount})</span>
               </button>
             ))}
