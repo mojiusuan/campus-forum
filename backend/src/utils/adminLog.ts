@@ -12,6 +12,8 @@ export type AdminAction =
   | 'restore_comment'
   | 'ban_user'
   | 'unban_user'
+  | 'approve_user'
+  | 'reject_user'
   | 'update_user'
   | 'delete_user'
   | 'reset_password'
