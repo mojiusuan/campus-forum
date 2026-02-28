@@ -36,6 +36,7 @@ const AdminPosts = lazy(() => import('./pages/admin/AdminPosts'));
 const AdminComments = lazy(() => import('./pages/admin/AdminComments'));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminUserDetail = lazy(() => import('./pages/admin/AdminUserDetail'));
+const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 const AdminCategories = lazy(() => import('./pages/admin/AdminCategories'));
 const AdminResources = lazy(() => import('./pages/admin/AdminResources'));
 const AdminStats = lazy(() => import('./pages/admin/AdminStats'));
@@ -241,6 +242,16 @@ function App() {
               <AdminRoute>
                 <Suspense fallback={<PageLoader />}>
                   <AdminUserDetail />
+                </Suspense>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <AdminRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <AdminReports />
                 </Suspense>
               </AdminRoute>
             }

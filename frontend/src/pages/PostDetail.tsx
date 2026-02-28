@@ -20,7 +20,10 @@ import {
   Trash2,
   Send,
   Star,
+  Flag,
+  X,
 } from 'lucide-react';
+import { reportsApi } from '../api/reports';
 import ImageGallery from '../components/ImageGallery';
 import { CommentSkeleton } from '../components/LoadingSkeleton';
 import type { Post, Comment } from '../types/api';
@@ -455,6 +458,29 @@ export default function PostDetail() {
     },
   });
 
+  // 举报
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const reportMutation = useMutation({
+    mutationFn: async (reason: string) => {
+      if (!id) throw new Error('Post ID is required');
+      return reportsApi.create({ targetType: 'post', targetId: id, reason });
+    },
+    onSuccess: () => {
+      setReportOpen(false);
+      setReportReason('');
+      alert('举报已提交，我们会尽快处理');
+    },
+  });
+  const handleSubmitReport = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (reportReason.trim().length < 5) {
+      alert('请填写至少5个字的举报原因');
+      return;
+    }
+    reportMutation.mutate(reportReason.trim());
+  };
+
   const handleLike = () => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -623,9 +649,60 @@ export default function PostDetail() {
               <Star className={`w-4 h-4 ${post.isFavorited ? 'fill-current' : ''}`} />
               <span>收藏</span>
             </button>
+            {isAuthenticated && (
+              <button
+                onClick={() => setReportOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                <Flag className="w-4 h-4" />
+                <span>举报</span>
+              </button>
+            )}
           </div>
         </div>
       </article>
+
+      {/* 举报弹窗 */}
+      {reportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">举报帖子</h3>
+              <button
+                onClick={() => { setReportOpen(false); setReportReason(''); }}
+                className="p-1 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitReport}>
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="请描述举报原因（至少5个字）..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 resize-none"
+                rows={4}
+              />
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setReportOpen(false); setReportReason(''); }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={reportReason.trim().length < 5 || reportMutation.isPending}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {reportMutation.isPending ? '提交中...' : '提交举报'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* 评论区域 */}
       <div className="bg-white rounded-lg shadow-sm p-6">

@@ -1,5 +1,5 @@
 /**
- * 注册页面
+ * 注册页面（需上传学生证，待管理员审核通过后可登录）
  */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -7,11 +7,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '../store/authStore';
-import { Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { uploadApi } from '../api/upload';
+import { Mail, Lock, User, AlertCircle, FileImage } from 'lucide-react';
 
 const registerSchema = z.object({
   email: z.string().email('请输入有效的邮箱地址'),
-  // 与后端保持一致：用户名长度 1-20 个字符
   username: z.string().min(1, '用户名至少1位').max(20, '用户名最多20位'),
   password: z.string().min(6, '密码至少6位'),
   confirmPassword: z.string(),
@@ -27,6 +27,9 @@ export default function Register() {
   const navigate = useNavigate();
   const { register: registerUser, isLoading } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
+  const [studentIdFile, setStudentIdFile] = useState<File | null>(null);
+  const [studentIdPreview, setStudentIdPreview] = useState<string | null>(null);
+  const [pendingSuccess, setPendingSuccess] = useState(false);
 
   const {
     register,
@@ -39,15 +42,53 @@ export default function Register() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setError(null);
-      await registerUser(data.email, data.username, data.password, data.phone);
-      // 注册成功后，等待一下确保状态和 localStorage 都已更新
-      await new Promise(resolve => setTimeout(resolve, 100));
-      // 跳转首页
+      if (!studentIdFile) {
+        setError('请上传学生证照片');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', studentIdFile);
+      const uploadRes = await uploadApi.uploadStudentId(formData);
+      if (!uploadRes.success || !uploadRes.data?.url) {
+        setError('学生证上传失败，请重试');
+        return;
+      }
+      const result = await registerUser(
+        data.email,
+        data.username,
+        data.password,
+        data.phone,
+        uploadRes.data.url
+      );
+      if (result?.pending) {
+        setPendingSuccess(true);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 100));
       navigate('/', { replace: true });
     } catch (err: any) {
       setError(err.message || '注册失败，请稍后重试');
     }
   };
+
+  if (pendingSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+        <div className="max-w-md w-full text-center bg-white rounded-lg shadow p-8">
+          <h2 className="text-xl font-bold text-gray-900">注册已提交</h2>
+          <p className="mt-4 text-gray-600">
+            请等待管理员审核您的学生证。审核通过后即可登录使用。
+          </p>
+          <Link
+            to="/login"
+            className="mt-6 inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            前往登录
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -57,7 +98,7 @@ export default function Register() {
             注册新账号
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            已有账号？{' '}
+            需上传学生证，审核通过后可登录。已有账号？{' '}
             <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
               立即登录
             </Link>
@@ -157,6 +198,40 @@ export default function Register() {
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                学生证照片 <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-4">
+                <label className="flex-shrink-0 cursor-pointer px-4 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 flex items-center gap-2">
+                  <FileImage className="w-5 h-5 text-gray-500" />
+                  <span className="text-sm text-gray-600">
+                    {studentIdFile ? studentIdFile.name : '选择图片'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) {
+                        setStudentIdFile(f);
+                        setStudentIdPreview(URL.createObjectURL(f));
+                      }
+                    }}
+                  />
+                </label>
+                {studentIdPreview && (
+                  <img
+                    src={studentIdPreview}
+                    alt="学生证预览"
+                    className="w-20 h-20 object-cover rounded border border-gray-200"
+                  />
+                )}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">支持 JPG、PNG、GIF、WebP，不超过 5MB</p>
             </div>
           </div>
 

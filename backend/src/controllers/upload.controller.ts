@@ -14,8 +14,9 @@ const __dirname = dirname(__filename);
 const uploadsDir = path.join(__dirname, '../../uploads');
 const imagesDir = path.join(uploadsDir, 'images');
 const filesDir = path.join(uploadsDir, 'files');
+const studentIdDir = path.join(uploadsDir, 'images', 'student-id');
 
-[uploadsDir, imagesDir, filesDir].forEach((dir) => {
+[uploadsDir, imagesDir, filesDir, studentIdDir].forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -75,6 +76,16 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   }
 };
 
+// 学生证图片存储（注册时未登录使用）
+const studentIdStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, studentIdDir),
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `student-${uniqueSuffix}${ext}`);
+  },
+});
+
 // 创建multer实例
 const uploadImage = multer({
   storage: imageStorage,
@@ -82,6 +93,12 @@ const uploadImage = multer({
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
   },
+});
+
+const uploadStudentId = multer({
+  storage: studentIdStorage,
+  fileFilter: imageFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 const uploadFile = multer({
@@ -146,6 +163,18 @@ export const uploadImageMiddleware = (req: any, res: any, next: any) => {
 };
 
 /**
+ * 上传学生证图片（无需登录，供注册使用）
+ */
+export const uploadStudentIdMiddleware = (req: any, res: any, next: any) => {
+  uploadStudentId.single('file')(req, res, (err: any) => {
+    if (err) {
+      return handleMulterError(err, req, res, next);
+    }
+    next();
+  });
+};
+
+/**
  * 上传文件中间件（带错误处理）
  */
 export const uploadFileMiddleware = (req: any, res: any, next: any) => {
@@ -177,6 +206,35 @@ export async function uploadImageHandler(req: Request, res: Response) {
       size: req.file.size,
       mimetype: req.file.mimetype,
     }, '图片上传成功');
+  } catch (error: any) {
+    console.error('上传图片失败:', error);
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return sendError(res, ErrorCode.VALIDATION_ERROR, '图片大小不能超过5MB');
+      }
+      return sendError(res, ErrorCode.VALIDATION_ERROR, error.message);
+    }
+    sendError(res, ErrorCode.INTERNAL_ERROR, '上传图片失败', error.message);
+  }
+}
+
+/**
+ * 上传学生证图片（无需登录）
+ * POST /api/upload/student-id
+ */
+export async function uploadStudentIdHandler(req: Request, res: Response) {
+  try {
+    if (!req.file) {
+      return sendError(res, ErrorCode.VALIDATION_ERROR, '请选择学生证照片');
+    }
+    const fileUrl = `/uploads/images/student-id/${req.file.filename}`;
+    sendSuccess(res, {
+      url: fileUrl,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    }, '上传成功');
   } catch (error: any) {
     console.error('上传图片失败:', error);
     if (error instanceof multer.MulterError) {

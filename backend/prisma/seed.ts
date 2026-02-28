@@ -26,6 +26,7 @@ async function main() {
         passwordHash,
         isActive: true,
         role: 'user',
+        verificationStatus: 'approved',
       },
     });
     console.log('✅ 创建匿名系统用户');

@@ -14,7 +14,13 @@ interface AuthState {
 
   // Actions
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string, phone?: string) => Promise<void>;
+  register: (
+    email: string,
+    username: string,
+    password: string,
+    phone?: string,
+    studentIdImageUrl?: string
+  ) => Promise<{ pending?: boolean; message?: string } | void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -53,21 +59,43 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (email: string, username: string, password: string, phone?: string) => {
+      register: async (
+        email: string,
+        username: string,
+        password: string,
+        phone?: string,
+        studentIdImageUrl?: string
+      ) => {
         set({ isLoading: true });
         try {
-          const response = await authApi.register({ email, username, password, phone });
+          if (!studentIdImageUrl) {
+            throw new Error('请上传学生证照片');
+          }
+          const response = await authApi.register({
+            email,
+            username,
+            password,
+            phone,
+            studentIdImageUrl,
+          });
           if (response.success && response.data) {
-            const { user, token } = response.data;
-            // 立即写入 localStorage，确保 API 客户端能读取到
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-            set({
-              user,
-              token,
-              isAuthenticated: true,
-              isLoading: false,
-            });
+            const data = response.data as { user?: User; token?: string; message?: string; pending?: boolean };
+            if (data.pending) {
+              set({ isLoading: false });
+              return { pending: true, message: data.message }; // 待审核，由页面展示提示
+            }
+            if (data.user && data.token) {
+              localStorage.setItem('token', data.token);
+              localStorage.setItem('user', JSON.stringify(data.user));
+              set({
+                user: data.user,
+                token: data.token,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+            } else {
+              throw new Error('注册失败');
+            }
           } else {
             throw new Error('注册失败');
           }

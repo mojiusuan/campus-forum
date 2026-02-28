@@ -19,6 +19,7 @@ export async function getUsers(req: Request, res: Response) {
     const keyword = req.query.keyword as string | undefined;
     const role = req.query.role as string | undefined;
     const status = req.query.status as string | undefined; // 'all' | 'active' | 'banned'
+    const verificationStatus = req.query.verificationStatus as string | undefined; // 'pending' | 'approved' | 'rejected'
 
     // 构建查询条件
     const where: any = {};
@@ -28,6 +29,9 @@ export async function getUsers(req: Request, res: Response) {
       where.isActive = true;
     } else if (status === 'banned') {
       where.isActive = false;
+    }
+    if (verificationStatus) {
+      where.verificationStatus = verificationStatus;
     }
     // 'all' 或未指定：显示所有
 
@@ -69,6 +73,8 @@ export async function getUsers(req: Request, res: Response) {
           isActive: true,
           role: true,
           isAdmin: true,
+          verificationStatus: true,
+          studentIdImageUrl: true,
           lastLoginAt: true,
           createdAt: true,
           updatedAt: true,
@@ -141,6 +147,9 @@ export async function getUserById(req: Request, res: Response) {
         isActive: true,
         role: true,
         isAdmin: true,
+        verificationStatus: true,
+        studentIdImageUrl: true,
+        verifiedAt: true,
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
@@ -473,5 +482,107 @@ export async function resetPassword(req: Request, res: Response) {
     sendSuccess(res, { message: '密码已重置' });
   } catch (error: any) {
     sendError(res, ErrorCode.INTERNAL_ERROR, error.message || '重置密码失败');
+  }
+}
+
+/**
+ * 通过用户注册审核
+ * POST /api/admin/users/:id/approve
+ */
+export async function approveUser(req: Request, res: Response) {
+  try {
+    const id = getParam(req, 'id');
+    if (!id) {
+      sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
+      return;
+    }
+    const adminId = req.user!.userId;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      sendError(res, ErrorCode.NOT_FOUND, '用户不存在');
+      return;
+    }
+
+    if (user.verificationStatus !== 'pending') {
+      sendError(res, ErrorCode.VALIDATION_ERROR, '该用户不在待审核状态');
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        verificationStatus: 'approved',
+        verifiedAt: new Date(),
+        verifiedBy: adminId,
+      },
+    });
+
+    await logAdminAction({
+      adminId,
+      action: 'approve_user',
+      targetType: 'user',
+      targetId: id,
+      description: `通过用户注册审核: ${user.username}`,
+      req,
+    });
+
+    sendSuccess(res, { message: '已通过该用户的注册审核' });
+  } catch (error: any) {
+    sendError(res, ErrorCode.INTERNAL_ERROR, error.message || '操作失败');
+  }
+}
+
+/**
+ * 拒绝用户注册审核
+ * POST /api/admin/users/:id/reject
+ */
+export async function rejectUser(req: Request, res: Response) {
+  try {
+    const id = getParam(req, 'id');
+    if (!id) {
+      sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
+      return;
+    }
+    const adminId = req.user!.userId;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      sendError(res, ErrorCode.NOT_FOUND, '用户不存在');
+      return;
+    }
+
+    if (user.verificationStatus !== 'pending') {
+      sendError(res, ErrorCode.VALIDATION_ERROR, '该用户不在待审核状态');
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        verificationStatus: 'rejected',
+        verifiedAt: new Date(),
+        verifiedBy: adminId,
+      },
+    });
+
+    await logAdminAction({
+      adminId,
+      action: 'reject_user',
+      targetType: 'user',
+      targetId: id,
+      description: `拒绝用户注册审核: ${user.username}`,
+      req,
+    });
+
+    sendSuccess(res, { message: '已拒绝该用户的注册审核' });
+  } catch (error: any) {
+    sendError(res, ErrorCode.INTERNAL_ERROR, error.message || '操作失败');
   }
 }

@@ -16,6 +16,22 @@ export interface UploadFileResponse {
 
 export const uploadApi = {
   /**
+   * 上传学生证照片（无需登录，供注册使用）
+   */
+  uploadStudentId: async (formData: FormData): Promise<ApiResponse<{ url: string }>> => {
+    const response = await apiClient.post<ApiResponse<{ url: string }>>(
+      '/upload/student-id',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+
+  /**
    * 上传图片
    */
   uploadImage: async (formData: FormData): Promise<ApiResponse<UploadImageResponse>> => {

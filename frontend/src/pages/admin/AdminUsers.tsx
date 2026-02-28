@@ -8,10 +8,15 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import { adminApi } from '../../api/admin';
 import Pagination from '../../components/Pagination';
 import { ListSkeleton } from '../../components/LoadingSkeleton';
-import { Search, Ban, CheckCircle, Shield, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { Search, Ban, CheckCircle, Shield, ShieldCheck, User as UserIcon, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { getFullUrl } from '../../utils/url';
 import { useIsSuperAdmin } from '../../hooks/useAdmin';
 import type { User } from '../../types/api';
+
+type AdminUser = User & {
+  verificationStatus?: string;
+  studentIdImageUrl?: string;
+};
 
 export default function AdminUsers() {
   const isSuperAdmin = useIsSuperAdmin();
@@ -20,7 +25,8 @@ export default function AdminUsers() {
     limit: 20,
     keyword: '',
     role: 'all',
-    status: 'all', // 'all' | 'active' | 'banned'
+    status: 'all',
+    verificationStatus: 'all' as string, // 'all' | 'pending' | 'approved' | 'rejected'
   });
 
   const queryClient = useQueryClient();
@@ -35,6 +41,7 @@ export default function AdminUsers() {
         keyword: searchParams.keyword || undefined,
         role: searchParams.role === 'all' ? undefined : searchParams.role,
         status: searchParams.status === 'all' ? undefined : searchParams.status,
+        verificationStatus: searchParams.verificationStatus === 'all' ? undefined : searchParams.verificationStatus,
       });
       return response.data;
     },
@@ -57,6 +64,22 @@ export default function AdminUsers() {
     },
   });
 
+  // 通过注册审核
+  const approveUserMutation = useMutation({
+    mutationFn: (id: string) => adminApi.approveUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+  });
+
+  // 拒绝注册审核
+  const rejectUserMutation = useMutation({
+    mutationFn: (id: string) => adminApi.rejectUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+  });
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearchParams((prev) => ({ ...prev, page: 1 }));
@@ -72,6 +95,18 @@ export default function AdminUsers() {
   const handleUnban = async (user: User) => {
     if (window.confirm(`确定要解封用户 ${user.username} 吗？`)) {
       await unbanUserMutation.mutateAsync(user.id!);
+    }
+  };
+
+  const handleApprove = async (user: AdminUser) => {
+    if (window.confirm(`确定通过用户 ${user.username} 的注册审核吗？`)) {
+      await approveUserMutation.mutateAsync(user.id!);
+    }
+  };
+
+  const handleReject = async (user: AdminUser) => {
+    if (window.confirm(`确定拒绝用户 ${user.username} 的注册审核吗？`)) {
+      await rejectUserMutation.mutateAsync(user.id!);
     }
   };
 
@@ -101,7 +136,35 @@ export default function AdminUsers() {
     }
   };
 
-  const users = usersData?.users || [];
+  const getVerificationBadge = (status?: string) => {
+    switch (status) {
+      case 'pending':
+        return (
+          <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded flex items-center space-x-1">
+            <Clock className="w-3 h-3" />
+            <span>待审核</span>
+          </span>
+        );
+      case 'approved':
+        return (
+          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded flex items-center space-x-1">
+            <CheckCircle2 className="w-3 h-3" />
+            <span>已通过</span>
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded flex items-center space-x-1">
+            <XCircle className="w-3 h-3" />
+            <span>已拒绝</span>
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const users: AdminUser[] = usersData?.users || [];
   const totalPages = usersData?.pagination?.totalPages || 1;
 
   return (
@@ -157,6 +220,20 @@ export default function AdminUsers() {
                   <option value="banned">已封禁</option>
                 </select>
               </div>
+              <div>
+                <select
+                  value={searchParams.verificationStatus}
+                  onChange={(e) =>
+                    setSearchParams((prev) => ({ ...prev, verificationStatus: e.target.value, page: 1 }))
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">审核状态</option>
+                  <option value="pending">待审核</option>
+                  <option value="approved">已通过</option>
+                  <option value="rejected">已拒绝</option>
+                </select>
+              </div>
             </div>
             <div className="flex justify-end">
               <button
@@ -208,6 +285,7 @@ export default function AdminUsers() {
                               {user.username}
                             </Link>
                             {getRoleBadge(user.role)}
+                            {getVerificationBadge(user.verificationStatus)}
                             {user.isVerified && (
                               <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
                                 已验证
@@ -231,10 +309,40 @@ export default function AdminUsers() {
                                 最后登录: {new Date(user.lastLoginAt).toLocaleString()}
                               </span>
                             )}
+                            {user.verificationStatus === 'pending' && user.studentIdImageUrl && (
+                              <a
+                                href={getFullUrl(user.studentIdImageUrl)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                              >
+                                查看学生证
+                              </a>
+                            )}
                           </div>
                         </div>
                       </div>
                       <div className="ml-4 flex items-center space-x-2">
+                        {user.verificationStatus === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(user)}
+                              disabled={approveUserMutation.isPending}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                              title="通过审核"
+                            >
+                              <CheckCircle2 className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleReject(user)}
+                              disabled={rejectUserMutation.isPending}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              title="拒绝审核"
+                            >
+                              <XCircle className="w-5 h-5" />
+                            </button>
+                          </>
+                        )}
                         {user.isActive ? (
                           <button
                             onClick={() => handleBan(user)}

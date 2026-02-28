@@ -22,6 +22,7 @@ import notificationsRoutes from './routes/notifications.routes.js';
 import searchRoutes from './routes/search.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import resourcesRoutes from './routes/resources.routes.js';
+import reportsRoutes from './routes/reports.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 
 const app = express();
@@ -68,6 +69,7 @@ app.use('/api/notifications', notificationsRoutes); // 通知路由
 app.use('/api/search', searchRoutes); // 搜索路由
 app.use('/api/upload', uploadRoutes); // 文件上传路由
 app.use('/api/resources', resourcesRoutes); // 学习资料路由
+app.use('/api/reports', reportsRoutes); // 举报
 app.use('/api/admin', adminRoutes); // 管理员路由
 
 // 404处理

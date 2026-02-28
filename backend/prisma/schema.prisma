@@ -24,6 +24,11 @@ model User {
   isActive    Boolean  @default(true) @map("is_active")
   role        String   @default("user") // 'user' | 'admin' | 'super_admin'
   isAdmin     Boolean  @default(false) @map("is_admin") // 兼容字段
+  // 学生证审核：pending=待审核 approved=已通过 rejected=已拒绝
+  verificationStatus String  @default("pending") @map("verification_status")
+  studentIdImageUrl   String? @map("student_id_image_url")
+  verifiedAt         DateTime? @map("verified_at")
+  verifiedBy         String?   @map("verified_by") // 审核管理员 id
   lastLoginAt DateTime? @map("last_login_at")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -40,11 +45,13 @@ model User {
   notifications    Notification[]
   resources        Resource[]
   adminLogs        AdminLog[] @relation("AdminLogs")
+  reports          Report[]
 
   @@index([email])
   @@index([username])
   @@index([phone])
   @@index([role])
+  @@index([verificationStatus])
   @@map("users")
 }
 
@@ -305,4 +312,29 @@ model AdminLog {
   @@index([targetType, targetId])
   @@index([createdAt(sort: Desc)])
   @@map("admin_logs")
+}
+
+// ============================================
+// 举报表（帖子、资料）
+// ============================================
+model Report {
+  id         String   @id @default(uuid())
+  targetType String   @map("target_type") // 'post' | 'resource'
+  targetId   String   @map("target_id")
+  reporterId String   @map("reporter_id")
+  reason     String   @db.Text // 举报原因
+  status     String   @default("pending") // 'pending' | 'processed'
+  processedBy String? @map("processed_by")
+  processedAt DateTime? @map("processed_at")
+  remark     String?  @db.Text // 处理备注
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+  @@index([reporterId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("reports")
 }

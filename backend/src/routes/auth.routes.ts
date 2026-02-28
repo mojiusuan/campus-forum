@@ -10,15 +10,19 @@ const router = Router();
 
 /**
  * POST /api/auth/register
- * 用户注册
+ * 用户注册（需上传学生证，待管理员审核通过后才能登录）
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, username, password, phone } = req.body;
+    const { email, username, password, phone, studentIdImageUrl } = req.body;
 
-    // 验证必填字段
+    // 验证必填字段（含学生证照片）
     if (!email || !username || !password) {
       sendError(res, ErrorCode.MISSING_REQUIRED_FIELD, '缺少必填字段');
+      return;
+    }
+    if (!studentIdImageUrl || typeof studentIdImageUrl !== 'string' || !studentIdImageUrl.trim()) {
+      sendError(res, ErrorCode.MISSING_REQUIRED_FIELD, '请上传学生证照片');
       return;
     }
 
@@ -37,36 +41,21 @@ router.post('/register', async (req, res) => {
     // 加密密码
     const passwordHash = await hashPassword(password);
 
-    // 创建用户
-    const user = await prisma.user.create({
+    // 创建用户（待审核状态，不发放 token）
+    await prisma.user.create({
       data: {
         email,
         username,
         passwordHash,
         phone: phone || null,
+        verificationStatus: 'pending',
+        studentIdImageUrl: studentIdImageUrl.trim(),
       },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        createdAt: true,
-      },
-    });
-
-    // 生成Token（包含角色信息）
-    const token = generateToken({
-      userId: user.id,
-      email: user.email,
-      role: 'user', // 新注册用户默认为普通用户
     });
 
     sendSuccess(res, {
-      user: {
-        ...user,
-        role: 'user',
-        isAdmin: false,
-      },
-      token,
+      message: '注册成功，请等待管理员审核。审核通过后可登录使用。',
+      pending: true,
     });
   } catch (error: any) {
     sendError(res, ErrorCode.INTERNAL_ERROR, error.message || '注册失败');
@@ -89,6 +78,19 @@ router.post('/login', async (req, res) => {
     // 查找用户
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        passwordHash: true,
+        avatarUrl: true,
+        bio: true,
+        isVerified: true,
+        isActive: true,
+        role: true,
+        isAdmin: true,
+        verificationStatus: true,
+      },
     });
 
     if (!user) {
@@ -99,6 +101,17 @@ router.post('/login', async (req, res) => {
     // 检查用户是否被封禁
     if (!user.isActive) {
       sendError(res, ErrorCode.FORBIDDEN, '账户已被封禁，无法登录', undefined, 403);
+      return;
+    }
+
+    // 检查是否已通过学生证审核（管理员/超级管理员不受限）
+    const needVerification = user.role === 'user';
+    if (needVerification && user.verificationStatus !== 'approved') {
+      if (user.verificationStatus === 'rejected') {
+        sendError(res, ErrorCode.FORBIDDEN, '您的注册审核未通过，无法登录', undefined, 403);
+      } else {
+        sendError(res, ErrorCode.FORBIDDEN, '您的账号尚未通过审核，请耐心等待管理员审核', undefined, 403);
+      }
       return;
     }
 
@@ -158,6 +171,7 @@ router.get('/me', authenticate, async (req, res) => {
         isVerified: true,
         role: true,
         isAdmin: true,
+        verificationStatus: true,
         createdAt: true,
         updatedAt: true,
       },

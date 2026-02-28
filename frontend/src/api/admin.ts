@@ -116,6 +116,7 @@ export const adminApi = {
     keyword?: string;
     role?: string;
     status?: string;
+    verificationStatus?: string; // 'pending' | 'approved' | 'rejected'
   }): Promise<ApiResponse<any>> => {
     const response = await apiClient.get('/admin/users', { params });
     return response.data;
@@ -165,6 +166,22 @@ export const adminApi = {
     const response = await apiClient.post(`/admin/users/${id}/reset-password`, {
       newPassword,
     });
+    return response.data;
+  },
+
+  /**
+   * 通过用户注册审核
+   */
+  approveUser: async (id: string): Promise<ApiResponse> => {
+    const response = await apiClient.post(`/admin/users/${id}/approve`);
+    return response.data;
+  },
+
+  /**
+   * 拒绝用户注册审核
+   */
+  rejectUser: async (id: string): Promise<ApiResponse> => {
+    const response = await apiClient.post(`/admin/users/${id}/reject`);
     return response.data;
   },
 
@@ -295,6 +312,27 @@ export const adminApi = {
     endDate?: string;
   }): Promise<ApiResponse<any>> => {
     const response = await apiClient.get('/admin/logs', { params });
+    return response.data;
+  },
+
+  /**
+   * 获取举报列表
+   */
+  getReports: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    targetType?: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await apiClient.get('/admin/reports', { params });
+    return response.data;
+  },
+
+  /**
+   * 处理举报（标记为已处理）
+   */
+  processReport: async (id: string, remark?: string): Promise<ApiResponse> => {
+    const response = await apiClient.post(`/admin/reports/${id}/process`, { remark });
     return response.data;
   },
 };

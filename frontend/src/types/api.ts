@@ -46,11 +46,14 @@ export interface RegisterRequest {
   username: string;
   password: string;
   phone?: string;
+  studentIdImageUrl: string; // 学生证照片 URL（先调用上传接口获得）
 }
 
 export interface AuthResponse {
-  user: User;
-  token: string;
+  user?: User;
+  token?: string;
+  message?: string;
+  pending?: boolean; // 注册待审核时为 true，无 token
 }
 
 /**

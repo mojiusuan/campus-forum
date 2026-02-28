@@ -8,6 +8,7 @@ import * as userController from '../controllers/admin.user.controller.js';
 import * as categoryController from '../controllers/admin.category.controller.js';
 import * as resourceController from '../controllers/admin.resource.controller.js';
 import * as logController from '../controllers/admin.log.controller.js';
+import * as reportController from '../controllers/admin.report.controller.js';
 
 const router = Router();
 
@@ -42,6 +43,8 @@ router.post('/users/:id/ban', userController.banUser);
 router.post('/users/:id/unban', userController.unbanUser);
 router.put('/users/:id', userController.updateUser);
 router.post('/users/:id/reset-password', userController.resetPassword);
+router.post('/users/:id/approve', userController.approveUser);
+router.post('/users/:id/reject', userController.rejectUser);
 
 // 分类管理路由
 router.get('/categories', categoryController.getCategories);
@@ -57,5 +60,9 @@ router.post('/resources/:id/restore', resourceController.restoreResource);
 
 // 操作日志路由
 router.get('/logs', logController.getLogs);
+
+// 举报管理路由
+router.get('/reports', reportController.getReports);
+router.post('/reports/:id/process', reportController.processReport);
 
 export default router;
