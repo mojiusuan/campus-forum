@@ -35,6 +35,18 @@ export default function Landing() {
         </Link>
       </div>
 
+      {/* 备案号（首页底部） */}
+      <footer className="landing-footer">
+        <a
+          href="https://beian.miit.gov.cn/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="landing-icp"
+        >
+          陕ICP备2026003916号
+        </a>
+      </footer>
+
       <style>{`
         .landing-page {
           position: relative;
@@ -143,6 +155,23 @@ export default function Landing() {
         .landing-btn:hover {
           transform: translateY(-2px);
           box-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
+        }
+
+        .landing-footer {
+          position: absolute;
+          bottom: 1rem;
+          left: 0;
+          right: 0;
+          z-index: 1;
+          text-align: center;
+        }
+        .landing-icp {
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.5);
+          text-decoration: none;
+        }
+        .landing-icp:hover {
+          color: rgba(255, 255, 255, 0.8);
         }
       `}</style>
     </div>

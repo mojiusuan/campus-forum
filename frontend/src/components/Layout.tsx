@@ -362,6 +362,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-sm text-gray-500">
             <p>© 2026 校园论坛. All rights reserved.</p>
+            <p className="mt-1">
+              <a
+                href="https://beian.miit.gov.cn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gray-700"
+              >
+                陕ICP备2026003916号
+              </a>
+            </p>
           </div>
         </div>
       </footer>
