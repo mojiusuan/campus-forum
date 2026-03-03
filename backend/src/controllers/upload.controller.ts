@@ -11,7 +11,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // 确保uploads目录存在
-const uploadsDir = path.join(__dirname, '../../uploads');
+// 说明：运行时编译后的 __dirname 为 backend/dist/controllers，
+// 使用 ../../../uploads 保证指向项目根目录下的 /uploads，
+// 与 Nginx 中 alias /uploads -> /var/www/forum/uploads 保持一致。
+const uploadsDir = path.join(__dirname, '../../../uploads');
 const imagesDir = path.join(uploadsDir, 'images');
 const filesDir = path.join(uploadsDir, 'files');
 const studentIdDir = path.join(uploadsDir, 'images', 'student-id');
