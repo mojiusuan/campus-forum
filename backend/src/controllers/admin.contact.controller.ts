@@ -2,6 +2,7 @@ import type { Request, Response } from 'express-serve-static-core';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ErrorCode } from '../types/api.js';
 import prisma from '../utils/db.js';
+import { getParam } from '../utils/params.js';
 
 /**
  * 获取联系我们/用户反馈列表
@@ -62,7 +63,7 @@ export async function getContacts(req: Request, res: Response) {
  */
 export async function processContact(req: Request, res: Response) {
   try {
-    const id = req.params.id;
+    const id = getParam(req, 'id');
     if (!id) {
       sendError(res, ErrorCode.INVALID_INPUT, '无效的ID');
       return;
