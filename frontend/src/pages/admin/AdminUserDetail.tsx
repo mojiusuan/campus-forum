@@ -255,6 +255,49 @@ export default function AdminUserDetail() {
           </div>
         </div>
 
+        {/* 学生证信息（仅超级管理员可见） */}
+        {isSuperAdmin && user.studentIdImageUrl && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">学生证信息（注册审核）</h3>
+            <div className="flex items-start space-x-6">
+              <div className="w-40">
+                <a
+                  href={getFullUrl(user.studentIdImageUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block border border-gray-200 rounded-md overflow-hidden hover:shadow"
+                >
+                  <img
+                    src={getFullUrl(user.studentIdImageUrl)}
+                    alt="学生证照片"
+                    className="w-full h-40 object-cover"
+                  />
+                </a>
+                <p className="mt-2 text-xs text-gray-500">
+                  点击图片可在新标签页中查看原图。
+                </p>
+              </div>
+              <div className="flex-1 text-sm text-gray-600 space-y-1">
+                <p>
+                  审核状态：
+                  <span className="font-medium text-gray-900">
+                    {user.verificationStatus === 'approved'
+                      ? '已通过'
+                      : user.verificationStatus === 'rejected'
+                        ? '已拒绝'
+                        : '待审核'}
+                  </span>
+                </p>
+                {user.verifiedAt && (
+                  <p>
+                    最近审核时间：{new Date(user.verifiedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 统计数据 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg shadow-sm p-6">

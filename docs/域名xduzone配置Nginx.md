@@ -41,9 +41,9 @@ server {
         proxy_read_timeout 60s;
     }
 
-    # 上传文件
-    location /uploads {
-        alias /var/www/forum/uploads;
+    # 上传文件（^~ 避免被后面 *.png 等正则 location 抢走）
+    location ^~ /uploads/ {
+        alias /var/www/forum/uploads/;
         expires 30d;
         add_header Cache-Control "public, immutable";
     }
