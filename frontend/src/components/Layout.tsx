@@ -117,6 +117,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <FileText className="inline-block w-4 h-4 mr-1" />
                 资料
               </Link>
+              <Link
+                to="/contact"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  location.pathname === '/contact'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                联系我们
+              </Link>
             </nav>
 
             {/* User Menu */}
@@ -360,9 +370,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center text-sm text-gray-500">
+          <div className="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-500 gap-2">
             <p>© 2026 校园论坛. All rights reserved.</p>
-            <p className="mt-2">
+            <div className="flex items-center gap-4">
+              <Link
+                to="/contact"
+                className="text-gray-600 hover:text-gray-900"
+              >
+                联系我们
+              </Link>
               <a
                 href="https://beian.miit.gov.cn/"
                 target="_blank"
@@ -371,7 +387,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               >
                 陕ICP备2026003916号
               </a>
-            </p>
+            </div>
           </div>
         </div>
       </footer>

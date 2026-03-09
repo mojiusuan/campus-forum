@@ -46,6 +46,7 @@ model User {
   resources        Resource[]
   adminLogs        AdminLog[] @relation("AdminLogs")
   reports          Report[]
+  contactMessages  ContactMessage[]
 
   @@index([email])
   @@index([username])
@@ -337,4 +338,26 @@ model Report {
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("reports")
+}
+
+// ============================================
+// 联系我们 / 用户反馈表
+// ============================================
+model ContactMessage {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  email     String?
+  subject   String?
+  content   String   @db.Text
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent") @db.Text
+  status    String   @default("pending") // 'pending' | 'processed'
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("contact_messages")
 }

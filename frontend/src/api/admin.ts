@@ -335,4 +335,24 @@ export const adminApi = {
     const response = await apiClient.post(`/admin/reports/${id}/process`, { remark });
     return response.data;
   },
+
+  /**
+   * 获取联系我们/用户反馈列表
+   */
+  getContacts: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }): Promise<ApiResponse<any>> => {
+    const response = await apiClient.get('/admin/contacts', { params });
+    return response.data;
+  },
+
+  /**
+   * 标记联系我们记录为已处理
+   */
+  processContact: async (id: string): Promise<ApiResponse> => {
+    const response = await apiClient.post(`/admin/contacts/${id}/process`);
+    return response.data;
+  },
 };

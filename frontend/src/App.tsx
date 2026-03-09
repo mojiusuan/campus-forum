@@ -16,6 +16,7 @@ import Landing from './pages/Landing';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Contact from './pages/Contact';
 
 // 懒加载的页面
 const PostDetail = lazy(() => import('./pages/PostDetail'));
@@ -37,6 +38,7 @@ const AdminComments = lazy(() => import('./pages/admin/AdminComments'));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminUserDetail = lazy(() => import('./pages/admin/AdminUserDetail'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
+const AdminContacts = lazy(() => import('./pages/admin/AdminContacts'));
 const AdminCategories = lazy(() => import('./pages/admin/AdminCategories'));
 const AdminResources = lazy(() => import('./pages/admin/AdminResources'));
 const AdminStats = lazy(() => import('./pages/admin/AdminStats'));
@@ -82,6 +84,7 @@ function App() {
           {/* 公开路由 */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/contact" element={<Contact />} />
 
           {/* 论坛首页 */}
           <Route
@@ -272,6 +275,16 @@ function App() {
               <AdminRoute>
                 <Suspense fallback={<PageLoader />}>
                   <AdminResources />
+                </Suspense>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/contacts"
+            element={
+              <AdminRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <AdminContacts />
                 </Suspense>
               </AdminRoute>
             }

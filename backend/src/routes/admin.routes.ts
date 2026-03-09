@@ -9,6 +9,7 @@ import * as categoryController from '../controllers/admin.category.controller.js
 import * as resourceController from '../controllers/admin.resource.controller.js';
 import * as logController from '../controllers/admin.log.controller.js';
 import * as reportController from '../controllers/admin.report.controller.js';
+import * as contactController from '../controllers/admin.contact.controller.js';
 
 const router = Router();
 
@@ -64,5 +65,9 @@ router.get('/logs', logController.getLogs);
 // 举报管理路由
 router.get('/reports', reportController.getReports);
 router.post('/reports/:id/process', reportController.processReport);
+
+// 联系我们 / 用户反馈管理路由
+router.get('/contacts', contactController.getContacts);
+router.post('/contacts/:id/process', contactController.processContact);
 
 export default router;

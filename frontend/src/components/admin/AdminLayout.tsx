@@ -18,6 +18,7 @@ import {
   LogOut,
   Menu,
   X,
+  MessageCircle,
 } from 'lucide-react';
 import { getFullUrl } from '../../utils/url';
 
@@ -31,6 +32,7 @@ const menuItems = [
   { path: '/admin/comments', label: '评论管理', icon: MessageSquare },
   { path: '/admin/users', label: '用户管理', icon: Users },
   { path: '/admin/reports', label: '举报管理', icon: Flag },
+  { path: '/admin/contacts', label: '用户反馈', icon: MessageCircle },
   { path: '/admin/categories', label: '分类管理', icon: FolderTree },
   { path: '/admin/resources', label: '学习资料', icon: FileDown },
   { path: '/admin/stats', label: '数据统计', icon: BarChart3 },
