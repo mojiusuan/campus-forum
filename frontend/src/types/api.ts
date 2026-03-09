@@ -29,6 +29,10 @@ export interface User {
   isVerified: boolean;
   role?: string; // 'user' | 'admin' | 'super_admin'
   isAdmin?: boolean; // 兼容字段
+  phone?: string;
+  lastLoginAt?: string;
+  verificationStatus?: 'pending' | 'approved' | 'rejected';
+  studentIdImageUrl?: string;
   postCount?: number;
   followerCount?: number;
   followingCount?: number;

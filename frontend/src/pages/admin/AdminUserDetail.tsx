@@ -255,8 +255,8 @@ export default function AdminUserDetail() {
           </div>
         </div>
 
-        {/* 学生证信息（仅超级管理员可见） */}
-        {isSuperAdmin && user.studentIdImageUrl && (
+        {/* 学生证信息（所有管理员可见） */}
+        {user.studentIdImageUrl && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">学生证信息（注册审核）</h3>
             <div className="flex items-start space-x-6">
