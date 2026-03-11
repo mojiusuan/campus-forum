@@ -75,7 +75,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
-            {/* Navigation */}
+            {/* Navigation（桌面端） */}
             <nav className="hidden md:flex items-center space-x-6">
               <Link
                 to="/"
@@ -273,6 +273,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               <FileText className="inline-block w-4 h-4 mr-2" />
               资料
+            </Link>
+            <Link
+              to="/contact"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                location.pathname === '/contact'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              联系我们
             </Link>
             {isAuthenticated && (
               <>

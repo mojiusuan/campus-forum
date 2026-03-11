@@ -61,9 +61,9 @@ export default function Home() {
   const totalPages = postsData?.pagination?.totalPages || 1;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      {/* 侧边栏 - 分类 */}
-      <aside className="lg:col-span-1">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+      {/* 侧边栏 - 分类（桌面端） */}
+      <aside className="hidden lg:block lg:col-span-1">
         <div className="bg-white rounded-lg shadow-sm p-4 sticky top-20">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">分类</h2>
           <nav className="space-y-2">
@@ -100,6 +100,41 @@ export default function Home() {
 
       {/* 主内容区 - 帖子列表 */}
       <div className="lg:col-span-3">
+        {/* 移动端分类横向滚动 */}
+        <div className="mb-3 lg:hidden">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium text-gray-700">分类</span>
+          </div>
+          <div className="flex space-x-2 overflow-x-auto py-1">
+            <button
+              onClick={() => handleCategoryClick(null)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border ${
+                !categoryId
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-700 border-gray-300'
+              }`}
+            >
+              全部
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => handleCategoryClick(category.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border ${
+                  categoryId === category.id
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-gray-700 border-gray-300'
+                }`}
+              >
+                {category.name}
+                {category.isAnonymous && (
+                  <span className="ml-1 text-[10px] text-pink-600">匿名</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow-sm">
           {isLoading ? (
             <div className="divide-y divide-gray-200">
