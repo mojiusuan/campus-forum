@@ -101,9 +101,9 @@ export default function Home() {
       {/* 主内容区 - 帖子列表 */}
       <div className="lg:col-span-3">
         {/* 移动端分类横向滚动 */}
-        <div className="mb-3 lg:hidden">
+        <div className="mb-2 lg:hidden">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium text-gray-700">分类</span>
+            <span className="text-xs font-medium text-gray-600">分类</span>
           </div>
           <div className="flex space-x-2 overflow-x-auto py-1">
             <button
