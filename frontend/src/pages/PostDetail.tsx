@@ -522,7 +522,7 @@ export default function PostDetail() {
   const isAuthor = user?.id === post.userId;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pb-28 md:pb-0">
       {/* 返回按钮 */}
       <button
         onClick={() => navigate(-1)}
@@ -624,7 +624,7 @@ export default function PostDetail() {
               <span>{post.commentCount}</span>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-4">
             <button
               onClick={handleLike}
               disabled={likePostMutation.isPending}
@@ -661,6 +661,57 @@ export default function PostDetail() {
           </div>
         </div>
       </article>
+
+      {/* 手机端固定操作栏（避免和底部 TabBar 重叠） */}
+      <div className="fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-gray-200 md:hidden">
+        <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center space-x-3 text-xs text-gray-500">
+            <div className="flex items-center space-x-1">
+              <Eye className="w-3 h-3" />
+              <span>{post.viewCount}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <MessageSquare className="w-3 h-3" />
+              <span>{post.commentCount}</span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleLike}
+              disabled={likePostMutation.isPending}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs transition-colors disabled:opacity-50 ${
+                post.isLiked
+                  ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Heart className={`w-3.5 h-3.5 ${post.isLiked ? 'fill-current' : ''}`} />
+              <span>{post.likeCount}</span>
+            </button>
+            <button
+              onClick={handleFavorite}
+              disabled={favoritePostMutation.isPending}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs transition-colors disabled:opacity-50 ${
+                post.isFavorited
+                  ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Star className={`w-3.5 h-3.5 ${post.isFavorited ? 'fill-current' : ''}`} />
+              <span>收藏</span>
+            </button>
+            {isAuthenticated && (
+              <button
+                onClick={() => setReportOpen(true)}
+                className="px-3 py-1.5 rounded-full text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                <Flag className="w-3.5 h-3.5 inline-block mr-1" />
+                举报
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* 举报弹窗 */}
       {reportOpen && (

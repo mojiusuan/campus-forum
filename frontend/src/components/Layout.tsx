@@ -10,6 +10,7 @@ import { messagesApi } from '../api/messages';
 import { getFullUrl } from '../utils/url';
 import { LogOut, User, Home, Search, PlusCircle, Bell, MessageSquare, FileText, X, Shield, Sparkles } from 'lucide-react';
 import { useIsAdmin } from '../hooks/useAdmin';
+import MobileTabBar from './MobileTabBar';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -374,7 +375,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
         {children}
       </main>
 
@@ -402,6 +403,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </footer>
+
+      {/* 底部 TabBar（仅手机端） */}
+      <MobileTabBar />
     </div>
   );
 }
