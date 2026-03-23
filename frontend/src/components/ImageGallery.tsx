@@ -55,35 +55,17 @@ export default function ImageGallery({ images, alt = '图片', className = '' }:
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightboxOpen, images.length]);
 
-  // 根据图片数量选择布局
-  const getLayoutClass = () => {
-    const count = images.length;
-    if (count === 1) {
-      return 'grid-cols-1';
-    } else if (count === 2) {
-      return 'grid-cols-2';
-    } else if (count === 3) {
-      return 'grid-cols-3';
-    } else if (count === 4) {
-      return 'grid-cols-2';
-    } else {
-      return 'grid-cols-3';
-    }
-  };
-
-  // 渲染图片网格
+  // 渲染图片网格（统一朋友圈风格：单图大图，多图九宫格方图）
   const renderImageGrid = () => {
     const count = images.length;
-    
+
     if (count === 1) {
-      // 单张图片：大图显示
       return (
-        <div className="w-full">
+        <div className="w-full max-w-[420px]">
           <img
             src={getFullUrl(images[0]) || ''}
             alt={`${alt} - 1`}
-            // 统一高度裁剪，避免单张图因原始宽高比导致版式跳动
-            className="w-full h-64 rounded-lg cursor-pointer object-cover hover:opacity-90 transition-opacity"
+            className="w-full h-64 sm:h-72 rounded-lg cursor-pointer object-cover hover:opacity-90 transition-opacity"
             onClick={() => openLightbox(0)}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -92,108 +74,41 @@ export default function ImageGallery({ images, alt = '图片', className = '' }:
           />
         </div>
       );
-    } else if (count === 2) {
-      // 两张图片：横向排列
-      return (
-        <div className="grid grid-cols-2 gap-2">
-          {images.map((url, index) => (
-            <img
-              key={index}
-              src={getFullUrl(url) || ''}
-              alt={`${alt} - ${index + 1}`}
-              className="w-full h-64 rounded-lg cursor-pointer object-cover hover:opacity-90 transition-opacity"
-              onClick={() => openLightbox(index)}
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="14"%3E图片加载失败%3C/text%3E%3C/svg%3E';
-              }}
-            />
-          ))}
-        </div>
-      );
-    } else if (count === 3) {
-      // 三张图片：左侧一张大图，右侧两张小图
-      return (
-        <div className="grid grid-cols-3 gap-2 h-64">
-          <div className="col-span-1">
-            <img
-              src={getFullUrl(images[0]) || ''}
-              alt={`${alt} - 1`}
-              className="w-full h-full rounded-lg cursor-pointer object-cover hover:opacity-90 transition-opacity"
-              onClick={() => openLightbox(0)}
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="14"%3E图片加载失败%3C/text%3E%3C/svg%3E';
-              }}
-            />
-          </div>
-          <div className="col-span-2 grid grid-rows-2 gap-2">
-            {images.slice(1).map((url, index) => (
-              <img
-                key={index + 1}
-                src={getFullUrl(url) || ''}
-                alt={`${alt} - ${index + 2}`}
-                className="w-full h-full rounded-lg cursor-pointer object-cover hover:opacity-90 transition-opacity"
-                onClick={() => openLightbox(index + 1)}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="14"%3E图片加载失败%3C/text%3E%3C/svg%3E';
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      );
-    } else if (count === 4) {
-      // 四张图片：2x2网格
-      return (
-        <div className="grid grid-cols-2 gap-2">
-          {images.map((url, index) => (
-            <img
-              key={index}
-              src={getFullUrl(url) || ''}
-              alt={`${alt} - ${index + 1}`}
-              className="w-full h-48 rounded-lg cursor-pointer object-cover hover:opacity-90 transition-opacity"
-              onClick={() => openLightbox(index)}
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="14"%3E图片加载失败%3C/text%3E%3C/svg%3E';
-              }}
-            />
-          ))}
-        </div>
-      );
-    } else {
-      // 5张及以上：3列网格，最后一张显示"更多"遮罩
-      return (
-        <div className="grid grid-cols-3 gap-2">
-          {images.slice(0, 5).map((url, index) => (
-            <div key={index} className="relative">
-              <img
-                src={getFullUrl(url) || ''}
-                alt={`${alt} - ${index + 1}`}
-                className={`w-full h-32 rounded-lg cursor-pointer object-cover hover:opacity-90 transition-opacity ${
-                  index === 4 && images.length > 5 ? 'opacity-75' : ''
-                }`}
-                onClick={() => openLightbox(index)}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="14"%3E图片加载失败%3C/text%3E%3C/svg%3E';
-                }}
-              />
-              {index === 4 && images.length > 5 && (
-                <div
-                  className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center text-white font-semibold cursor-pointer"
-                  onClick={() => openLightbox(4)}
-                >
-                  +{images.length - 5}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      );
     }
+
+    const gridCols = count === 2 || count === 4 ? 2 : 3;
+    const maxShow = 9;
+    const visibleImages = images.slice(0, maxShow);
+    const moreCount = images.length - maxShow;
+
+    return (
+      <div className={`grid gap-2 ${gridCols === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+        {visibleImages.map((url, index) => (
+          <div key={index} className="relative">
+            <img
+              src={getFullUrl(url) || ''}
+              alt={`${alt} - ${index + 1}`}
+              className={`w-full aspect-square rounded-lg cursor-pointer object-cover hover:opacity-90 transition-opacity ${
+                index === maxShow - 1 && moreCount > 0 ? 'opacity-75' : ''
+              }`}
+              onClick={() => openLightbox(index)}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="14"%3E图片加载失败%3C/text%3E%3C/svg%3E';
+              }}
+            />
+            {index === maxShow - 1 && moreCount > 0 && (
+              <div
+                className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center text-white font-semibold cursor-pointer"
+                onClick={() => openLightbox(index)}
+              >
+                +{moreCount}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
