@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { notificationsApi } from '../api/notifications';
 import { messagesApi } from '../api/messages';
 import { getFullUrl } from '../utils/url';
-import { LogOut, User, Home, Search, PlusCircle, Bell, MessageSquare, FileText, X, Shield, Sparkles } from 'lucide-react';
+import { LogOut, User, Home, Search, PlusCircle, Bell, MessageSquare, FileText, X, Shield, Sparkles, Flame } from 'lucide-react';
 import { useIsAdmin } from '../hooks/useAdmin';
 import MobileTabBar from './MobileTabBar';
 
@@ -106,6 +106,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               >
                 <Search className="inline-block w-4 h-4 mr-1" />
                 搜索
+              </Link>
+              <Link
+                to="/hot/weekly"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  location.pathname === '/hot/weekly'
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Flame className="inline-block w-4 h-4 mr-1" />
+                热榜
               </Link>
               <Link
                 to="/resources"
@@ -262,6 +273,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               <Search className="inline-block w-4 h-4 mr-2" />
               搜索
+            </Link>
+            <Link
+              to="/hot/weekly"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                location.pathname === '/hot/weekly'
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Flame className="inline-block w-4 h-4 mr-2" />
+              每周热榜
             </Link>
             <Link
               to="/resources"

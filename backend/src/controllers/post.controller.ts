@@ -201,46 +201,88 @@ export async function getWeeklyHotPosts(req: Request, res: Response) {
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 20);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
+    const statsStart = new Date();
+    statsStart.setHours(0, 0, 0, 0);
+    statsStart.setDate(statsStart.getDate() - 6);
 
-    const posts = await prisma.post.findMany({
-      where: {
-        isDeleted: false,
-        createdAt: {
-          gte: weekAgo,
-        },
-      },
-      orderBy: [
-        { viewCount: 'desc' },
-        { createdAt: 'desc' },
-      ],
-      take: limit,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            avatarUrl: true,
+    const [posts, recentPostsForStats] = await Promise.all([
+      prisma.post.findMany({
+        where: {
+          isDeleted: false,
+          createdAt: {
+            gte: weekAgo,
           },
         },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            isAnonymous: true,
+        orderBy: [
+          { viewCount: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: limit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              isAnonymous: true,
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.post.findMany({
+        where: {
+          isDeleted: false,
+          createdAt: {
+            gte: statsStart,
+          },
+        },
+        select: {
+          createdAt: true,
+          viewCount: true,
+        },
+      }),
+    ]);
 
     const hotPosts = posts.map((p: any) => ({
       ...p,
       user: maskUserForAnonymous(p.user, p.category?.isAnonymous === true),
     }));
 
+    const dailyMap = new Map<string, { date: string; posts: number; views: number }>();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(statsStart);
+      d.setDate(statsStart.getDate() + i);
+      const date = d.toISOString().slice(0, 10);
+      dailyMap.set(date, { date, posts: 0, views: 0 });
+    }
+
+    recentPostsForStats.forEach((post) => {
+      const date = new Date(post.createdAt).toISOString().slice(0, 10);
+      const existing = dailyMap.get(date);
+      if (!existing) return;
+      existing.posts += 1;
+      existing.views += post.viewCount;
+    });
+
+    const trend = Array.from(dailyMap.values());
+    const totalPosts = trend.reduce((sum, item) => sum + item.posts, 0);
+    const totalViews = trend.reduce((sum, item) => sum + item.views, 0);
+
     sendSuccess(res, {
       posts: hotPosts,
       range: '7d',
+      stats: {
+        totalPosts,
+        totalViews,
+        trend,
+      },
     });
   } catch (error: any) {
     sendError(res, ErrorCode.INTERNAL_ERROR, error.message || '获取每周热榜失败');

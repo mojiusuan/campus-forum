@@ -73,8 +73,24 @@ export const postsApi = {
   /**
    * 获取每周热榜（近7天按浏览量）
    */
-  getWeeklyHotPosts: async (limit = 10): Promise<ApiResponse<{ posts: Post[]; range: string }>> => {
-    const response = await apiClient.get<ApiResponse<{ posts: Post[]; range: string }>>('/posts/hot/weekly', {
+  getWeeklyHotPosts: async (limit = 10): Promise<ApiResponse<{
+    posts: Post[];
+    range: string;
+    stats?: {
+      totalPosts: number;
+      totalViews: number;
+      trend: Array<{ date: string; posts: number; views: number }>;
+    };
+  }>> => {
+    const response = await apiClient.get<ApiResponse<{
+      posts: Post[];
+      range: string;
+      stats?: {
+        totalPosts: number;
+        totalViews: number;
+        trend: Array<{ date: string; posts: number; views: number }>;
+      };
+    }>>('/posts/hot/weekly', {
       params: { limit },
     });
     return response.data;

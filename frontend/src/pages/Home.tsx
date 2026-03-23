@@ -5,10 +5,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { postsApi } from '../api/posts';
 import { categoriesApi } from '../api/categories';
-import { MessageSquare, Eye, Heart, Clock } from 'lucide-react';
+import { MessageSquare, Eye, Heart, Clock, Plus } from 'lucide-react';
 import PostImagePreview from '../components/PostImagePreview';
 import Pagination from '../components/Pagination';
 import { ListSkeleton } from '../components/LoadingSkeleton';
+import { getFullUrl } from '../utils/url';
 import type { Post, Category } from '../types/api';
 
 export default function Home() {
@@ -169,7 +170,10 @@ export default function Home() {
           </div>
 
           <div className="mt-2 bg-white rounded-lg shadow-sm p-3">
-            <h3 className="text-xs font-semibold text-gray-900 mb-2">每周热榜</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-gray-900">每周热榜</h3>
+              <Link to="/hot/weekly" className="text-[11px] text-blue-600">全部</Link>
+            </div>
             {weeklyHotPosts.length === 0 ? (
               <p className="text-xs text-gray-500">本周暂无热门帖子</p>
             ) : (
@@ -189,7 +193,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white rounded-lg shadow-sm hidden md:block">
           {isLoading ? (
             <div className="divide-y divide-gray-200">
               <ListSkeleton count={5} />
@@ -275,7 +279,70 @@ export default function Home() {
             </>
           )}
         </div>
+
+        <div className="md:hidden space-y-3">
+          {isLoading ? (
+            <div className="bg-white rounded-xl p-4">
+              <ListSkeleton count={4} />
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="bg-white rounded-xl p-6 text-center text-sm text-gray-500">暂无帖子</div>
+          ) : (
+            posts.map((post: Post) => (
+              <article key={post.id} className="bg-white rounded-xl px-4 py-3 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-gray-200 shrink-0 overflow-hidden">
+                      {post.user?.avatarUrl ? (
+                        <img src={getFullUrl(post.user.avatarUrl) || ''} alt={post.user?.username || '用户'} className="w-full h-full object-cover" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{post.user?.username || '匿名用户'}</p>
+                      <p className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-300">···</span>
+                </div>
+
+                <Link to={`/posts/${post.id}`} className="block mt-2">
+                  <h3 className="text-[17px] leading-6 text-gray-900 line-clamp-2">{post.title}</h3>
+                  <p className="mt-1 text-[15px] leading-6 text-gray-700 line-clamp-3">{post.content}</p>
+                </Link>
+
+                {post.images && post.images.length > 0 && (
+                  <div className="mt-2">
+                    <PostImagePreview images={post.images} postId={post.id} maxImages={4} />
+                  </div>
+                )}
+
+                <div className="mt-3 flex items-center justify-end gap-5 text-gray-500">
+                  <Link to={`/posts/${post.id}`} className="flex items-center gap-1 text-sm">
+                    <MessageSquare className="w-4 h-4" />
+                    <span>{post.commentCount}</span>
+                  </Link>
+                  <Link to={`/posts/${post.id}`} className="flex items-center gap-1 text-sm">
+                    <Heart className="w-4 h-4" />
+                    <span>{post.likeCount}</span>
+                  </Link>
+                  <Link to={`/posts/${post.id}`} className="flex items-center gap-1 text-sm">
+                    <Eye className="w-4 h-4" />
+                    <span>{post.viewCount}</span>
+                  </Link>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
       </div>
+
+      <Link
+        to="/posts/new"
+        className="md:hidden fixed right-5 bottom-24 z-30 w-12 h-12 rounded-full bg-emerald-500 text-white shadow-lg flex items-center justify-center"
+        aria-label="发帖"
+      >
+        <Plus className="w-6 h-6" />
+      </Link>
     </div>
   );
 }
