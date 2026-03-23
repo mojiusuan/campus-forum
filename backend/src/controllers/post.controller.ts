@@ -193,6 +193,61 @@ export async function getPostById(req: Request, res: Response) {
 }
 
 /**
+ * 获取每周热榜（按近7天帖子浏览量排序）
+ * GET /api/posts/hot/weekly
+ */
+export async function getWeeklyHotPosts(req: Request, res: Response) {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 20);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const posts = await prisma.post.findMany({
+      where: {
+        isDeleted: false,
+        createdAt: {
+          gte: weekAgo,
+        },
+      },
+      orderBy: [
+        { viewCount: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            isAnonymous: true,
+          },
+        },
+      },
+    });
+
+    const hotPosts = posts.map((p: any) => ({
+      ...p,
+      user: maskUserForAnonymous(p.user, p.category?.isAnonymous === true),
+    }));
+
+    sendSuccess(res, {
+      posts: hotPosts,
+      range: '7d',
+    });
+  } catch (error: any) {
+    sendError(res, ErrorCode.INTERNAL_ERROR, error.message || '获取每周热榜失败');
+  }
+}
+
+/**
  * 创建帖子
  */
 export async function createPost(req: Request, res: Response) {

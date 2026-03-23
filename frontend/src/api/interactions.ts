@@ -52,4 +52,20 @@ export const interactionsApi = {
     const response = await apiClient.delete<ApiResponse>(`/comments/${commentId}/like`);
     return response.data;
   },
+
+  /**
+   * 点赞资料
+   */
+  likeResource: async (resourceId: string): Promise<ApiResponse> => {
+    const response = await apiClient.post<ApiResponse>(`/resources/${resourceId}/like`);
+    return response.data;
+  },
+
+  /**
+   * 取消点赞资料
+   */
+  unlikeResource: async (resourceId: string): Promise<ApiResponse> => {
+    const response = await apiClient.delete<ApiResponse>(`/resources/${resourceId}/like`);
+    return response.data;
+  },
 };

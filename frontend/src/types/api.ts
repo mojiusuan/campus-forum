@@ -94,9 +94,17 @@ export interface Post {
 
 export interface PostListResponse {
   posts: Post[];
-  total: number;
-  page: number;
-  pageSize: number;
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
 export interface CreatePostRequest {

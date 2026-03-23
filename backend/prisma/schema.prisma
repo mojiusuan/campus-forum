@@ -255,6 +255,7 @@ model Resource {
   fileSize      Int      @map("file_size") // 字节
   fileType      String   @map("file_type") // 'pdf' | 'doc' | 'docx' | 'ppt' | 'pptx' | 'xls' | 'xlsx' | 'zip' | 'rar' | 'other'
   downloadCount Int      @default(0) @map("download_count")
+  likeCount     Int      @default(0) @map("like_count")
   isPublic      Boolean  @default(true) @map("is_public")
   isDeleted     Boolean  @default(false) @map("is_deleted")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -268,6 +269,7 @@ model Resource {
   @@index([isPublic, isDeleted])
   @@index([createdAt(sort: Desc)])
   @@index([downloadCount(sort: Desc)])
+  @@index([likeCount(sort: Desc)])
   @@map("resources")
 }
 

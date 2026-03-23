@@ -3,6 +3,7 @@ import { authenticate, optionalAuthenticate } from '../middleware/auth.js';
 import {
   getPosts,
   getPostById,
+  getWeeklyHotPosts,
   createPost,
   updatePost,
   deletePost,
@@ -28,6 +29,12 @@ router.get('/', optionalAuthenticate, getPosts);
  * 搜索帖子（可选认证）- 必须在 /:id 之前
  */
 router.get('/search', optionalAuthenticate, searchPosts);
+
+/**
+ * GET /api/posts/hot/weekly
+ * 获取每周热榜（可选认证）- 必须在 /:id 之前
+ */
+router.get('/hot/weekly', optionalAuthenticate, getWeeklyHotPosts);
 
 /**
  * POST /api/posts

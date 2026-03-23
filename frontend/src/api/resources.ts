@@ -12,7 +12,10 @@ export interface Resource {
   fileUrl: string;
   fileName: string;
   fileSize: number;
+  fileType: string;
   downloadCount: number;
+  likeCount: number;
+  isLiked?: boolean;
   isPublic: boolean; // true = 公开，false = 私有
   createdAt: string;
   updatedAt: string;
@@ -31,10 +34,10 @@ export const resourcesApi = {
     page?: number;
     pageSize?: number;
     keyword?: string;
-  }): Promise<ApiResponse<{ resources: Resource[]; total: number }>> => {
-    const response = await apiClient.get<ApiResponse<{ resources: Resource[]; total: number }>>(
+  }): Promise<ApiResponse<{ resources: Resource[]; pagination?: { total?: number; totalPages?: number } }>> => {
+    const response = await apiClient.get<ApiResponse<{ resources: Resource[]; pagination?: { total?: number; totalPages?: number } }>>(
       '/resources',
-      { params }
+      { params: { ...params, limit: params?.pageSize } }
     );
     return response.data;
   },

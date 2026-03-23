@@ -75,11 +75,26 @@ export async function getResources(req: Request, res: Response) {
       }),
     ]);
 
+    // 已登录时，查询当前页资料是否已点赞
+    let likedResourceIdSet = new Set<string>();
+    if (currentUserId && resources.length > 0) {
+      const likes = await prisma.like.findMany({
+        where: {
+          userId: currentUserId,
+          targetType: 'resource',
+          targetId: { in: resources.map((r) => r.id) },
+        },
+        select: { targetId: true },
+      });
+      likedResourceIdSet = new Set(likes.map((like) => like.targetId));
+    }
+
     // 格式化响应数据
     const formattedResources = resources.map((resource) => {
       const r = resource as any;
       return {
         id: resource.id,
+        userId: resource.userId,
         title: resource.title,
         description: resource.description,
         fileUrl: resource.fileUrl,
@@ -87,7 +102,9 @@ export async function getResources(req: Request, res: Response) {
         fileSize: resource.fileSize,
         fileType: resource.fileType,
         downloadCount: resource.downloadCount,
+        likeCount: resource.likeCount,
         isPublic: resource.isPublic,
+        isLiked: likedResourceIdSet.has(resource.id),
         createdAt: resource.createdAt,
         updatedAt: resource.updatedAt,
         user: {
@@ -223,6 +240,7 @@ export async function createResource(req: Request, res: Response) {
     const r = resource as any;
     sendSuccess(res, {
       id: resource.id,
+      userId: resource.userId,
       title: resource.title,
       description: resource.description,
       fileUrl: resource.fileUrl,
@@ -230,7 +248,9 @@ export async function createResource(req: Request, res: Response) {
       fileSize: resource.fileSize,
       fileType: resource.fileType,
       downloadCount: resource.downloadCount,
+      likeCount: resource.likeCount,
       isPublic: resource.isPublic,
+      isLiked: false,
       createdAt: resource.createdAt,
       user: {
         id: r.user.id,
@@ -281,9 +301,24 @@ export async function getResourceById(req: Request, res: Response) {
       return sendError(res, ErrorCode.FORBIDDEN, '无权查看此资料');
     }
 
+    let isLiked = false;
+    if (userId) {
+      const like = await prisma.like.findUnique({
+        where: {
+          userId_targetType_targetId: {
+            userId,
+            targetType: 'resource',
+            targetId: resource.id,
+          },
+        },
+      });
+      isLiked = !!like;
+    }
+
     const r = resource as any;
     sendSuccess(res, {
       id: resource.id,
+      userId: resource.userId,
       title: resource.title,
       description: resource.description,
       fileUrl: resource.fileUrl,
@@ -291,7 +326,9 @@ export async function getResourceById(req: Request, res: Response) {
       fileSize: resource.fileSize,
       fileType: resource.fileType,
       downloadCount: resource.downloadCount,
+      likeCount: resource.likeCount,
       isPublic: resource.isPublic,
+      isLiked,
       createdAt: resource.createdAt,
       updatedAt: resource.updatedAt,
       user: {

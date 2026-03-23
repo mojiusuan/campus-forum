@@ -6,9 +6,10 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { resourcesApi } from '../api/resources';
 import { reportsApi } from '../api/reports';
+import { interactionsApi } from '../api/interactions';
 import { useAuthStore } from '../store/authStore';
 import { getFullUrl } from '../utils/url';
-import { FileText, Download, User, Calendar, Upload, Flag, X } from 'lucide-react';
+import { FileText, Download, User, Calendar, Upload, Flag, X, Heart } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import { ListSkeleton } from '../components/LoadingSkeleton';
 import type { Resource } from '../api/resources';
@@ -27,6 +28,18 @@ export default function Resources() {
       setReportTargetId(null);
       setReportReason('');
       alert('举报已提交，我们会尽快处理');
+    },
+  });
+
+  const resourceLikeMutation = useMutation({
+    mutationFn: async ({ resourceId, isLiked }: { resourceId: string; isLiked?: boolean }) => {
+      if (isLiked) {
+        return interactionsApi.unlikeResource(resourceId);
+      }
+      return interactionsApi.likeResource(resourceId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resources'] });
     },
   });
 
@@ -53,8 +66,8 @@ export default function Resources() {
   };
 
   const resources = data?.resources || [];
-  const total = data?.total || 0;
-  const totalPages = data?.totalPages || 1;
+  const total = data?.pagination?.total || 0;
+  const totalPages = data?.pagination?.totalPages || 1;
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B';
@@ -137,6 +150,10 @@ export default function Resources() {
                         <Download className="w-4 h-4" />
                         <span>{resource.downloadCount} 次下载</span>
                       </div>
+                      <div className="flex items-center space-x-1">
+                        <Heart className="w-4 h-4" />
+                        <span>{resource.likeCount || 0} 点赞</span>
+                      </div>
                       {!resource.isPublic && (
                         <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
                           私有
@@ -145,6 +162,20 @@ export default function Resources() {
                     </div>
                   </div>
                   <div className="ml-4 flex items-center space-x-2">
+                    {isAuthenticated && (
+                      <button
+                        onClick={() => resourceLikeMutation.mutate({ resourceId: resource.id, isLiked: resource.isLiked })}
+                        className={`px-4 py-2 border rounded-md transition-colors flex items-center space-x-2 ${
+                          resource.isLiked
+                            ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                        }`}
+                        disabled={resourceLikeMutation.isPending}
+                      >
+                        <Heart className={`w-4 h-4 ${resource.isLiked ? 'fill-current' : ''}`} />
+                        <span>{resource.isLiked ? '已赞' : '点赞'}</span>
+                      </button>
+                    )}
                     {isAuthenticated && (
                       <button
                         onClick={() => setReportTargetId(resource.id)}

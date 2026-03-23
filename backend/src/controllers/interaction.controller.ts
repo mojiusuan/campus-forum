@@ -408,3 +408,127 @@ export async function unfavoritePost(req: Request, res: Response) {
     sendError(res, ErrorCode.INTERNAL_ERROR, '取消收藏失败', error.message);
   }
 }
+
+/**
+ * 点赞资料
+ * POST /api/resources/:id/like
+ */
+export async function likeResource(req: Request, res: Response) {
+  try {
+    const resourceId = getParam(req, 'id');
+    if (!resourceId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
+    const userId = (req as any).user?.userId;
+
+    if (!userId) {
+      return sendError(res, ErrorCode.UNAUTHORIZED, '请先登录');
+    }
+
+    const resource = await prisma.resource.findUnique({
+      where: { id: resourceId },
+    });
+
+    if (!resource || resource.isDeleted) {
+      return sendError(res, ErrorCode.NOT_FOUND, '资料不存在');
+    }
+
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        userId_targetType_targetId: {
+          userId,
+          targetType: 'resource',
+          targetId: resourceId,
+        },
+      },
+    });
+
+    if (existingLike) {
+      return sendError(res, ErrorCode.ALREADY_EXISTS, '已经点赞过了');
+    }
+
+    await prisma.like.create({
+      data: {
+        userId,
+        targetType: 'resource',
+        targetId: resourceId,
+      },
+    });
+
+    const updatedResource = await prisma.resource.update({
+      where: { id: resourceId },
+      data: {
+        likeCount: {
+          increment: 1,
+        },
+      },
+    });
+
+    sendSuccess(res, {
+      isLiked: true,
+      likeCount: updatedResource.likeCount,
+    }, '点赞成功');
+  } catch (error: any) {
+    console.error('点赞资料失败:', error);
+    sendError(res, ErrorCode.INTERNAL_ERROR, '点赞失败', error.message);
+  }
+}
+
+/**
+ * 取消点赞资料
+ * DELETE /api/resources/:id/like
+ */
+export async function unlikeResource(req: Request, res: Response) {
+  try {
+    const resourceId = getParam(req, 'id');
+    if (!resourceId) { sendError(res, ErrorCode.INVALID_INPUT, '无效的ID'); return; }
+    const userId = (req as any).user?.userId;
+
+    if (!userId) {
+      return sendError(res, ErrorCode.UNAUTHORIZED, '请先登录');
+    }
+
+    const resource = await prisma.resource.findUnique({
+      where: { id: resourceId },
+    });
+
+    if (!resource || resource.isDeleted) {
+      return sendError(res, ErrorCode.NOT_FOUND, '资料不存在');
+    }
+
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        userId_targetType_targetId: {
+          userId,
+          targetType: 'resource',
+          targetId: resourceId,
+        },
+      },
+    });
+
+    if (!existingLike) {
+      return sendError(res, ErrorCode.NOT_FOUND, '还没有点赞');
+    }
+
+    await prisma.like.delete({
+      where: {
+        id: existingLike.id,
+      },
+    });
+
+    const updatedResource = await prisma.resource.update({
+      where: { id: resourceId },
+      data: {
+        likeCount: {
+          decrement: 1,
+        },
+      },
+    });
+
+    sendSuccess(res, {
+      isLiked: false,
+      likeCount: updatedResource.likeCount,
+    }, '取消点赞成功');
+  } catch (error: any) {
+    console.error('取消资料点赞失败:', error);
+    sendError(res, ErrorCode.INTERNAL_ERROR, '取消点赞失败', error.message);
+  }
+}

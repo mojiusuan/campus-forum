@@ -8,6 +8,7 @@ import {
   downloadResource,
 } from '../controllers/resource.controller.js';
 import { uploadFileMiddleware } from '../controllers/upload.controller.js';
+import { likeResource, unlikeResource } from '../controllers/interaction.controller.js';
 
 const router = Router();
 
@@ -28,6 +29,18 @@ router.get('/:id', optionalAuthenticate, getResourceById);
  * 上传资料（需要认证）
  */
 router.post('/', authenticate, uploadFileMiddleware, createResource);
+
+/**
+ * POST /api/resources/:id/like
+ * 点赞资料（需要认证）
+ */
+router.post('/:id/like', authenticate, likeResource);
+
+/**
+ * DELETE /api/resources/:id/like
+ * 取消点赞资料（需要认证）
+ */
+router.delete('/:id/like', authenticate, unlikeResource);
 
 /**
  * DELETE /api/resources/:id
