@@ -82,7 +82,8 @@ export default function ImageGallery({ images, alt = '图片', className = '' }:
           <img
             src={getFullUrl(images[0]) || ''}
             alt={`${alt} - 1`}
-            className="w-full h-auto rounded-lg cursor-pointer object-cover max-h-[600px]"
+            // 统一高度裁剪，避免单张图因原始宽高比导致版式跳动
+            className="w-full h-64 rounded-lg cursor-pointer object-cover hover:opacity-90 transition-opacity"
             onClick={() => openLightbox(0)}
             onError={(e) => {
               const target = e.target as HTMLImageElement;

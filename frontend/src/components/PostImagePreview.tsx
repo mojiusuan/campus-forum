@@ -43,9 +43,7 @@ export default function PostImagePreview({
             <LazyImage
               src={getFullUrl(url)}
               alt={`帖子图片 ${index + 1}`}
-              className={`w-full rounded-lg object-cover hover:opacity-90 transition-opacity ${
-                displayImages.length === 2 ? 'h-32' : 'h-24'
-              }`}
+              className="w-full h-32 rounded-lg object-cover hover:opacity-90 transition-opacity"
             />
             {index === maxImages - 1 && remainingCount > 0 && (
               <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
