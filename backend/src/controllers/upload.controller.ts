@@ -94,14 +94,14 @@ const uploadImage = multer({
   storage: imageStorage,
   fileFilter: imageFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 20 * 1024 * 1024, // 20MB
   },
 });
 
 const uploadStudentId = multer({
   storage: studentIdStorage,
   fileFilter: imageFilter,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
 });
 
 const uploadFile = multer({
@@ -120,7 +120,7 @@ const handleMulterError = (err: any, req: any, res: any, next: any) => {
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: err.field === 'file' ? '文件大小不能超过限制' : '图片大小不能超过5MB',
+          message: err.field === 'file' ? '文件大小不能超过限制' : '图片大小不能超过20MB',
         },
       });
     }

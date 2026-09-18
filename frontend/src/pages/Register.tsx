@@ -231,7 +231,7 @@ export default function Register() {
                   />
                 )}
               </div>
-              <p className="mt-1 text-xs text-gray-500">支持 JPG、PNG、GIF、WebP，不超过 5MB</p>
+              <p className="mt-1 text-xs text-gray-500">支持 JPG、PNG、GIF、WebP，不超过 20MB</p>
             </div>
           </div>
 
