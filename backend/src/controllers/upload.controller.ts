@@ -50,9 +50,12 @@ const fileStorage = multer.diskStorage({
 });
 
 // 图片文件过滤器
+// 说明：以「扩展名」为准判类型，比 MIME 可靠 —— 部分客户端/系统不按规范上报 MIME
+// （例如 Windows 上传 zip 会送 application/x-zip-compressed，图片可能送 application/octet-stream）
+const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 const imageFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-  if (allowedMimes.includes(file.mimetype)) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ALLOWED_IMAGE_EXTS.includes(ext)) {
     cb(null, true);
   } else {
     cb(new Error('只支持 JPEG、PNG、GIF、WebP 格式的图片'));
@@ -60,22 +63,18 @@ const imageFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterC
 };
 
 // 文件过滤器
+// 以扩展名为准（原因同上）：兼容 application/x-zip-compressed / application/vnd.rar 等
+// 各浏览器/系统上报的非常规 MIME
+const ALLOWED_FILE_EXTS = [
+  '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx',
+  '.zip', '.rar', '.7z', '.tar', '.gz', '.txt', '.md',
+];
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedMimes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/zip',
-    'application/x-rar-compressed',
-  ];
-  if (allowedMimes.includes(file.mimetype)) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ALLOWED_FILE_EXTS.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('不支持的文件格式。支持：PDF、DOC、DOCX、PPT、PPTX、XLS、XLSX、ZIP、RAR'));
+    cb(new Error('不支持的文件格式。支持：PDF、DOC、DOCX、PPT、PPTX、XLS、XLSX、ZIP、RAR、7Z、TXT 等'));
   }
 };
 
