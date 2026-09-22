@@ -1,9 +1,9 @@
 /**
  * 空闲教室查询页
- * 数据来自 /api/kxtool（后端代理到本机 kxtool 服务，复用 ehall 会话）
+ * 每个用户用自己的西电账号登录（学号+密码 → 企业号验证码），会话在本机服务侧隔离保存
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, RefreshCw, DoorOpen } from 'lucide-react';
+import { Building2, RefreshCw, DoorOpen, LogOut, Lock } from 'lucide-react';
 import { kxtoolApi, type KxBuilding, type KxFreeResult } from '../api/kxtool';
 
 function today() {
@@ -37,6 +37,13 @@ function fmtRanges(free: number[]) {
 }
 
 export default function EmptyClassroom() {
+  const [phase, setPhase] = useState<'loading' | 'login' | 'mfa' | 'main'>('loading');
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [code, setCode] = useState('');
+  const [loginMsg, setLoginMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
   const [date, setDate] = useState(today());
   const [building, setBuilding] = useState('');
   const [allday, setAllday] = useState(true);
@@ -45,12 +52,82 @@ export default function EmptyClassroom() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const checkStatus = async () => {
+    try {
+      const s = await kxtoolApi.status();
+      if (s.logged) setPhase('main');
+      else if (s.mfa_pending) setPhase('mfa');
+      else setPhase('login');
+    } catch {
+      setPhase('login');
+    }
+  };
+
   useEffect(() => {
-    kxtoolApi
-      .buildings()
-      .then((d) => setBuildings(d.buildings || []))
-      .catch(() => {});
+    checkStatus();
   }, []);
+
+  useEffect(() => {
+    if (phase === 'main') {
+      kxtoolApi
+        .buildings()
+        .then((d) => setBuildings(d.buildings || []))
+        .catch(() => {});
+    }
+  }, [phase]);
+
+  const doLogin = async () => {
+    if (!user.trim() || !pass) return;
+    setBusy(true);
+    setLoginMsg('正在处理滑块验证码…');
+    try {
+      const r = await kxtoolApi.login(user.trim(), pass);
+      if (r.ok) {
+        setLoginMsg('');
+        setPass('');
+        setPhase('main');
+      } else if (r.need_mfa) {
+        setLoginMsg('');
+        setPhase('mfa');
+      } else {
+        setLoginMsg(r.error || '登录失败');
+      }
+    } catch (e: any) {
+      setLoginMsg(e?.message || '登录失败');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doMfa = async () => {
+    if (!code.trim()) return;
+    setBusy(true);
+    setLoginMsg('');
+    try {
+      const r = await kxtoolApi.mfa(code.trim());
+      if (r.ok) {
+        setCode('');
+        setPhase('main');
+      } else {
+        setLoginMsg(r.error || '验证码错误');
+      }
+    } catch (e: any) {
+      setLoginMsg(e?.message || '提交失败');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await kxtoolApi.logout();
+    } catch {
+      /* ignore */
+    }
+    setPhase('login');
+    setData(null);
+    setBuildings([]);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -59,17 +136,18 @@ export default function EmptyClassroom() {
       const d = await kxtoolApi.free(date, building, allday ? 'allday' : 'any');
       setData(d);
     } catch (e: any) {
-      setError(e?.message || '查询失败');
-      setData(null);
+      if (e?.code === 'UNKNOWN_ERROR' || e?.message) setError(e.message || '查询失败');
+      // 会话失效 → 回到登录
+      if (String(e?.message || '').includes('未登录')) setPhase('login');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
+    if (phase === 'main') load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, building, allday]);
+  }, [phase, date, building, allday]);
 
   const groups = useMemo(() => {
     const g: Record<string, KxFreeResult['rooms']> = {};
@@ -81,6 +159,77 @@ export default function EmptyClassroom() {
     return g;
   }, [data]);
 
+  // ---------- 登录 / 验证码 ----------
+  if (phase === 'loading') {
+    return <div className="text-center text-gray-500 py-20">加载中…</div>;
+  }
+  if (phase === 'login' || phase === 'mfa') {
+    return (
+      <div className="max-w-md mx-auto px-4 py-10">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <h1 className="text-lg font-bold text-gray-900 flex items-center mb-1">
+            <Lock className="w-5 h-5 mr-2 text-blue-600" />
+            {phase === 'login' ? '登录西电统一认证' : '二次认证'}
+          </h1>
+          <p className="text-xs text-gray-500 mb-4">
+            用你自己的西电账号登录，仅用于查询空闲教室；会话保存在服务器端，不记录你的密码。
+          </p>
+
+          {phase === 'login' ? (
+            <>
+              <input
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+                placeholder="学号"
+                autoComplete="username"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3"
+              />
+              <input
+                value={pass}
+                onChange={(e) => setPass(e.target.value)}
+                type="password"
+                placeholder="密码"
+                autoComplete="current-password"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3"
+              />
+              <button
+                onClick={doLogin}
+                disabled={busy}
+                className="w-full py-2.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {busy ? '登录中…' : '登录（自动过滑块）'}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-600 mb-3">
+                验证码已发送到你的<b>西电企业号</b>，请查收并输入 6 位数字。
+              </p>
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="6 位验证码"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 text-center tracking-widest"
+              />
+              <button
+                onClick={doMfa}
+                disabled={busy}
+                className="w-full py-2.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {busy ? '提交中…' : '提交'}
+              </button>
+            </>
+          )}
+
+          {loginMsg && <p className="text-sm text-red-600 mt-3">{loginMsg}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- 主界面 ----------
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-4">
@@ -88,17 +237,25 @@ export default function EmptyClassroom() {
           <Building2 className="w-6 h-6 mr-2 text-blue-600" />
           空闲教室
         </h1>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="inline-flex items-center px-3 py-2 rounded-md text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-        >
-          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          刷新
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={load}
+            disabled={loading}
+            className="inline-flex items-center px-3 py-2 rounded-md text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            刷新
+          </button>
+          <button
+            onClick={logout}
+            className="inline-flex items-center px-3 py-2 rounded-md text-sm border border-gray-300 text-gray-600 hover:bg-gray-50"
+          >
+            <LogOut className="w-4 h-4 mr-1" />
+            退出
+          </button>
+        </div>
       </div>
 
-      {/* 筛选 */}
       <div className="flex flex-wrap gap-2 items-center bg-white border border-gray-200 rounded-lg p-3 mb-4">
         <input
           type="date"
@@ -129,7 +286,8 @@ export default function EmptyClassroom() {
         </label>
         {data && (
           <span className="text-sm text-gray-500 ml-auto">
-            第 {data.week} 周 · 星期 {data.day} · {allday ? '全天全空' : '任意时段有空'} {data.count} 间
+            第 {data.week} 周 · 星期 {data.day} · {allday ? '全天全空' : '任意时段有空'}{' '}
+            {data.count} 间
           </span>
         )}
       </div>
