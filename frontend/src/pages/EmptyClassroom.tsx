@@ -1,10 +1,12 @@
 /**
- * 空闲教室查询页
- * 每个用户用自己的西电账号登录（学号+密码 → 企业号验证码），会话在本机服务侧隔离保存
+ * 空闲教室查询页（方案 B：用户自己登录官网 → 同步登录态）
+ * 表格：每间教室一行，每节课一个格子，红=占用/有课，绿=空闲
  */
-import { useEffect, useMemo, useState } from 'react';
-import { Building2, RefreshCw, DoorOpen, LogOut, Lock } from 'lucide-react';
+import { useEffect, useMemo, useState, Fragment } from 'react';
+import { Building2, RefreshCw, LogOut, KeyRound } from 'lucide-react';
 import { kxtoolApi, type KxBuilding, type KxFreeResult } from '../api/kxtool';
+
+const PERIODS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 function today() {
   const d = new Date();
@@ -12,41 +14,15 @@ function today() {
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
 }
 
-const PAIRS: [number, number][] = [
-  [1, 2],
-  [3, 4],
-  [5, 6],
-  [7, 8],
-  [9, 10],
-  [11, 12],
-];
-
-function fmtRanges(free: number[]) {
-  const out: [number, number][] = [];
-  let s = -1;
-  for (let i = 1; i <= 12; i++) {
-    if (free.includes(i)) {
-      if (s < 0) s = i;
-    } else if (s >= 0) {
-      out.push([s, i - 1]);
-      s = -1;
-    }
-  }
-  if (s >= 0) out.push([s, 12]);
-  return out.map(([a, b]) => (a === b ? `${a}节` : `${a}-${b}节`)).join('、');
-}
-
 export default function EmptyClassroom() {
-  const [phase, setPhase] = useState<'loading' | 'login' | 'mfa' | 'main'>('loading');
-  const [user, setUser] = useState('');
-  const [pass, setPass] = useState('');
-  const [code, setCode] = useState('');
-  const [loginMsg, setLoginMsg] = useState('');
+  const [phase, setPhase] = useState<'loading' | 'sync' | 'main'>('loading');
+  const [cookie, setCookie] = useState('');
+  const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
 
   const [date, setDate] = useState(today());
   const [building, setBuilding] = useState('');
-  const [allday, setAllday] = useState(true);
+  const [allday, setAllday] = useState(false);
   const [buildings, setBuildings] = useState<KxBuilding[]>([]);
   const [data, setData] = useState<KxFreeResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,14 +31,11 @@ export default function EmptyClassroom() {
   const checkStatus = async () => {
     try {
       const s = await kxtoolApi.status();
-      if (s.logged) setPhase('main');
-      else if (s.mfa_pending) setPhase('mfa');
-      else setPhase('login');
+      setPhase(s.logged ? 'main' : 'sync');
     } catch {
-      setPhase('login');
+      setPhase('sync');
     }
   };
-
   useEffect(() => {
     checkStatus();
   }, []);
@@ -76,43 +49,21 @@ export default function EmptyClassroom() {
     }
   }, [phase]);
 
-  const doLogin = async () => {
-    if (!user.trim() || !pass) return;
+  const doSync = async () => {
+    if (!cookie.trim()) return;
     setBusy(true);
-    setLoginMsg('正在处理滑块验证码…');
+    setMsg('校验中…');
     try {
-      const r = await kxtoolApi.login(user.trim(), pass);
+      const r = await kxtoolApi.sync(cookie.trim());
       if (r.ok) {
-        setLoginMsg('');
-        setPass('');
-        setPhase('main');
-      } else if (r.need_mfa) {
-        setLoginMsg('');
-        setPhase('mfa');
-      } else {
-        setLoginMsg(r.error || '登录失败');
-      }
-    } catch (e: any) {
-      setLoginMsg(e?.message || '登录失败');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const doMfa = async () => {
-    if (!code.trim()) return;
-    setBusy(true);
-    setLoginMsg('');
-    try {
-      const r = await kxtoolApi.mfa(code.trim());
-      if (r.ok) {
-        setCode('');
+        setCookie('');
+        setMsg('');
         setPhase('main');
       } else {
-        setLoginMsg(r.error || '验证码错误');
+        setMsg(r.error || '同步失败');
       }
     } catch (e: any) {
-      setLoginMsg(e?.message || '提交失败');
+      setMsg(e?.message || '同步失败');
     } finally {
       setBusy(false);
     }
@@ -124,7 +75,7 @@ export default function EmptyClassroom() {
     } catch {
       /* ignore */
     }
-    setPhase('login');
+    setPhase('sync');
     setData(null);
     setBuildings([]);
   };
@@ -136,14 +87,11 @@ export default function EmptyClassroom() {
       const d = await kxtoolApi.free(date, building, allday ? 'allday' : 'any');
       setData(d);
     } catch (e: any) {
-      if (e?.code === 'UNKNOWN_ERROR' || e?.message) setError(e.message || '查询失败');
-      // 会话失效 → 回到登录
-      if (String(e?.message || '').includes('未登录')) setPhase('login');
+      setError(e?.message || '查询失败');
     } finally {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     if (phase === 'main') load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -159,71 +107,51 @@ export default function EmptyClassroom() {
     return g;
   }, [data]);
 
-  // ---------- 登录 / 验证码 ----------
-  if (phase === 'loading') {
-    return <div className="text-center text-gray-500 py-20">加载中…</div>;
-  }
-  if (phase === 'login' || phase === 'mfa') {
+  // ---------- 同步登录态 ----------
+  if (phase === 'loading') return <div className="text-center text-gray-500 py-20">加载中…</div>;
+  if (phase === 'sync') {
     return (
-      <div className="max-w-md mx-auto px-4 py-10">
+      <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h1 className="text-lg font-bold text-gray-900 flex items-center mb-1">
-            <Lock className="w-5 h-5 mr-2 text-blue-600" />
-            {phase === 'login' ? '登录西电统一认证' : '二次认证'}
+          <h1 className="text-lg font-bold text-gray-900 flex items-center mb-3">
+            <KeyRound className="w-5 h-5 mr-2 text-blue-600" />
+            同步你的西电登录态
           </h1>
-          <p className="text-xs text-gray-500 mb-4">
-            用你自己的西电账号登录，仅用于查询空闲教室；会话保存在服务器端，不记录你的密码。
+          <p className="text-sm text-gray-600 mb-3">
+            本工具<b>不接触你的账号密码</b>、也<b>不代过验证码</b>。请你先在官网自己登录，再把登录态同步过来。
           </p>
-
-          {phase === 'login' ? (
-            <>
-              <input
-                value={user}
-                onChange={(e) => setUser(e.target.value)}
-                placeholder="学号"
-                autoComplete="username"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3"
-              />
-              <input
-                value={pass}
-                onChange={(e) => setPass(e.target.value)}
-                type="password"
-                placeholder="密码"
-                autoComplete="current-password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3"
-              />
-              <button
-                onClick={doLogin}
-                disabled={busy}
-                className="w-full py-2.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {busy ? '登录中…' : '登录（自动过滑块）'}
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-gray-600 mb-3">
-                验证码已发送到你的<b>西电企业号</b>，请查收并输入 6 位数字。
-              </p>
-              <input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="6 位验证码"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 text-center tracking-widest"
-              />
-              <button
-                onClick={doMfa}
-                disabled={busy}
-                className="w-full py-2.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {busy ? '提交中…' : '提交'}
-              </button>
-            </>
-          )}
-
-          {loginMsg && <p className="text-sm text-red-600 mt-3">{loginMsg}</p>}
+          <ol className="text-sm text-gray-700 list-decimal pl-5 space-y-1 mb-4">
+            <li>
+              浏览器打开 <span className="text-blue-600">ehall.xidian.edu.cn</span> 并<b>正常登录</b>
+              （含滑块、企业号验证码）
+            </li>
+            <li>
+              按 <b>F12</b> → Network → 随便点一个发往 <code>ehall.xidian.edu.cn</code> 的请求 →
+              <b>复制它的 Cookie</b>
+              <div className="text-xs text-gray-500 mt-1">
+                手机（安卓 Kiwi）可装「Cookie Editor」类扩展导出 ehall 的 Cookie
+              </div>
+            </li>
+            <li>粘贴到下面 → 点「同步」</li>
+          </ol>
+          <textarea
+            value={cookie}
+            onChange={(e) => setCookie(e.target.value)}
+            rows={4}
+            placeholder="粘贴 Cookie（形如 JSESSIONID=...; MOD_AUTH_CAS=...; ...）"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-mono mb-3"
+          />
+          <button
+            onClick={doSync}
+            disabled={busy}
+            className="w-full py-2.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            {busy ? '校验中…' : '同步登录态'}
+          </button>
+          {msg && <p className="text-sm text-red-600 mt-3">{msg}</p>}
+          <p className="text-xs text-gray-400 mt-4">
+            登录态只保存在服务器用于替你查询，可随时在右上角「退出」清除。
+          </p>
         </div>
       </div>
     );
@@ -292,6 +220,18 @@ export default function EmptyClassroom() {
         )}
       </div>
 
+      <div className="flex items-center gap-4 text-xs text-gray-500 mb-2 px-1">
+        <span className="inline-flex items-center">
+          <span className="inline-block w-4 h-4 rounded-sm bg-green-500 mr-1" />
+          空闲
+        </span>
+        <span className="inline-flex items-center">
+          <span className="inline-block w-4 h-4 rounded-sm bg-red-500 mr-1" />
+          有课/占用
+        </span>
+        <span>列 = 第 1~12 节</span>
+      </div>
+
       {error && (
         <div className="mb-4 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">
           {error}
@@ -302,45 +242,59 @@ export default function EmptyClassroom() {
         <div className="text-center text-gray-500 py-16">这天没有符合条件的空闲教室 🤷</div>
       )}
 
-      {Object.keys(groups).map((k) => (
-        <div key={k} className="mb-5">
-          <div className="text-sm font-semibold text-gray-600 mb-2">
-            {k} 楼 · {groups[k].length} 间
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {groups[k].map((r) => (
-              <div
-                key={r.name}
-                className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-shadow"
-              >
-                <div className="font-semibold text-gray-900 truncate" title={r.name}>
-                  {r.name}
-                </div>
-                <div className="flex gap-1 my-2">
-                  {PAIRS.map(([a, b]) => (
-                    <span
-                      key={a}
-                      className={`flex-1 h-3 rounded-sm ${
-                        r.free.includes(a) && r.free.includes(b) ? 'bg-green-500' : 'bg-gray-200'
-                      }`}
-                    />
+      {!error && data && data.rooms.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-gray-500">
+                <th className="sticky left-0 z-10 bg-gray-50 text-left font-medium px-3 py-2 min-w-[110px]">
+                  教室
+                </th>
+                {PERIODS.map((p) => (
+                  <th key={p} className="font-normal px-0.5 py-2 text-center w-7">
+                    {p}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(groups).map((k) => (
+                <Fragment key={k}>
+                  <tr>
+                    <td
+                      colSpan={PERIODS.length + 1}
+                      className="bg-gray-100 text-gray-600 text-xs font-semibold px-3 py-1"
+                    >
+                      {k} 楼 · {groups[k].length} 间
+                    </td>
+                  </tr>
+                  {groups[k].map((r) => (
+                    <tr key={r.name} className="border-t border-gray-100">
+                      <td className="sticky left-0 z-10 bg-white px-3 py-1.5 whitespace-nowrap font-medium text-gray-900">
+                        {r.name}
+                      </td>
+                      {PERIODS.map((p) => {
+                        const free = r.free.includes(p);
+                        return (
+                          <td key={p} className="px-0.5 py-1.5">
+                            <span
+                              className={`block h-5 rounded-sm ${
+                                free ? 'bg-green-500' : 'bg-red-500'
+                              }`}
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
                   ))}
-                </div>
-                <div className="flex items-center text-xs text-green-700">
-                  <DoorOpen className="w-3 h-3 mr-1" />
-                  <span className="truncate" title={fmtRanges(r.free)}>
-                    {fmtRanges(r.free)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ))}
+      )}
 
-      <p className="text-xs text-gray-400 mt-6">
-        数据来自 ehall 一站式大厅 · 每格代表 2 节（1-2 / 3-4 / … / 11-12），绿色=空闲
-      </p>
+      <p className="text-xs text-gray-400 mt-4">数据来自 ehall 一站式大厅 · 每格 = 一节课</p>
     </div>
   );
 }

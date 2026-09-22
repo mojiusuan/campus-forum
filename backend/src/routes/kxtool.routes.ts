@@ -55,8 +55,7 @@ router.get('/free', (req, res) => {
   const q = new URLSearchParams(req.query as Record<string, string>).toString();
   proxy(req, res, `/api/free?${q}`);
 });
-router.post('/login', (req, res) => proxy(req, res, '/api/login'));
-router.post('/mfa', (req, res) => proxy(req, res, '/api/mfa'));
+router.post('/session', (req, res) => proxy(req, res, '/api/session'));
 router.post('/logout', (req, res) => proxy(req, res, '/api/logout'));
 
 export default router;
