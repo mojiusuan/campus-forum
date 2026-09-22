@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { notificationsApi } from '../api/notifications';
 import { messagesApi } from '../api/messages';
 import { getFullUrl } from '../utils/url';
-import { LogOut, User, Home, Search, PlusCircle, Bell, MessageSquare, FileText, X, Shield, Sparkles, Flame } from 'lucide-react';
+import { LogOut, User, Home, Search, PlusCircle, Bell, MessageSquare, FileText, X, Shield, Sparkles, Flame, Building2 } from 'lucide-react';
 import { useIsAdmin } from '../hooks/useAdmin';
 import MobileTabBar from './MobileTabBar';
 
@@ -128,6 +128,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               >
                 <FileText className="inline-block w-4 h-4 mr-1" />
                 资料
+              </Link>
+              <Link
+                to="/classroom"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  location.pathname === '/classroom'
+                    ? 'bg-green-100 text-green-700'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Building2 className="inline-block w-4 h-4 mr-1" />
+                空闲教室
               </Link>
               <Link
                 to="/contact"
@@ -297,6 +308,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               <FileText className="inline-block w-4 h-4 mr-2" />
               资料
+            </Link>
+            <Link
+              to="/classroom"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                location.pathname === '/classroom'
+                  ? 'bg-green-100 text-green-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Building2 className="inline-block w-4 h-4 mr-2" />
+              空闲教室
             </Link>
             <Link
               to="/contact"

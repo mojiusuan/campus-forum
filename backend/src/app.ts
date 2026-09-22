@@ -25,6 +25,7 @@ import resourcesRoutes from './routes/resources.routes.js';
 import reportsRoutes from './routes/reports.routes.js';
 import contactRoutes from './routes/contact.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import kxtoolRoutes from './routes/kxtool.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -73,6 +74,7 @@ app.use('/api/resources', resourcesRoutes); // 学习资料路由
 app.use('/api/reports', reportsRoutes); // 举报
 app.use('/api/contact', contactRoutes); // 联系我们 / 用户反馈
 app.use('/api/admin', adminRoutes); // 管理员路由
+app.use('/api/kxtool', kxtoolRoutes); // 空闲教室查询（代理到本机 kxtool 服务）
 
 // 404处理
 app.use((req, res) => {

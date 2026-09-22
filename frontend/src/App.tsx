@@ -26,6 +26,7 @@ const UserProfile = lazy(() => import('./pages/UserProfile'));
 const EditProfile = lazy(() => import('./pages/EditProfile'));
 const Search = lazy(() => import('./pages/Search'));
 const HotWeekly = lazy(() => import('./pages/HotWeekly'));
+const EmptyClassroom = lazy(() => import('./pages/EmptyClassroom'));
 const Messages = lazy(() => import('./pages/Messages'));
 const Conversation = lazy(() => import('./pages/Conversation'));
 const Notifications = lazy(() => import('./pages/Notifications'));
@@ -185,6 +186,14 @@ function App() {
                 <ProtectedRoute>
                   <Notifications />
                 </ProtectedRoute>
+              </Layout>
+            }
+          />
+          <Route
+            path="/classroom"
+            element={
+              <Layout>
+                <EmptyClassroom />
               </Layout>
             }
           />
