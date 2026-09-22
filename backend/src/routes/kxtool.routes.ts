@@ -50,11 +50,14 @@ async function proxy(req: Request, res: Response, path: string): Promise<void> {
 router.use(authenticate);
 
 router.get('/status', (req, res) => proxy(req, res, '/api/status'));
+router.get('/captcha', (req, res) => proxy(req, res, '/api/captcha'));
 router.get('/buildings', (req, res) => proxy(req, res, '/api/buildings'));
 router.get('/free', (req, res) => {
   const q = new URLSearchParams(req.query as Record<string, string>).toString();
   proxy(req, res, `/api/free?${q}`);
 });
+router.post('/login', (req, res) => proxy(req, res, '/api/login'));
+router.post('/mfa', (req, res) => proxy(req, res, '/api/mfa'));
 router.post('/session', (req, res) => proxy(req, res, '/api/session'));
 router.post('/logout', (req, res) => proxy(req, res, '/api/logout'));
 
